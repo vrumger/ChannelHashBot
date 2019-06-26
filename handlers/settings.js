@@ -1,23 +1,22 @@
 const adminMiddleware = require(`../middleware/admin`);
 
 module.exports = (bot, db) => {
-    const button = (text, data, state) => ({
-        text,
-        callback_data: `settings:${data}:${state}`,
-    });
+    const button = (text, data, state) => [
+        {
+            text: `${text} ${state ? `✅` : `❌`}`,
+            callback_data: `settings:${data}:${state}`,
+        },
+    ];
 
     const generateMarkup = chat => {
-        const forwards = !chat || !chat.settings || chat.settings.forwards;
+        const settings = chat && chat.settings;
+        const forwards = (settings && settings.forwards) || false;
+        const link = (settings && settings.link) || false;
 
         return {
             inline_keyboard: [
-                [
-                    button(
-                        `Forwards ${forwards ? `✅` : `❌`}`,
-                        `forwards`,
-                        forwards
-                    ),
-                ],
+                button(`Forwards`, `forwards`, forwards),
+                button(`Direct Link`, `link`, link),
             ],
         };
     };

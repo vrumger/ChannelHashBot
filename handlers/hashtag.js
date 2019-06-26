@@ -4,7 +4,13 @@ module.exports = (bot, db) => {
             if (err) return console.error(err);
             if (!chat) return;
 
-            const { text, caption, entities, caption_entities } = ctx.message;
+            const {
+                message_id,
+                text,
+                caption,
+                entities,
+                caption_entities,
+            } = ctx.message;
 
             const tags = (entities || caption_entities || [])
                 .filter(entity => entity.type === `hashtag`)
@@ -17,14 +23,29 @@ module.exports = (bot, db) => {
 
             for (const tag of tags) {
                 if (chat.tags[tag]) {
-                    const forward = !chat.settings || chat.settings.forward;
-
-                    if (forward) {
+                    // Use `!== false` in case it's `undefined`
+                    if (!chat.settings || chat.settings.forwards !== false) {
                         ctx.forwardMessage(chat.tags[tag]);
                     } else {
+                        const chatId = ctx.chat.id.toString().slice(4);
+                        const replyMarkup = chat.settings &&
+                            chat.settings.link && {
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: `Go to message`,
+                                            url: `https://t.me/c/${chatId}/${message_id}`,
+                                        },
+                                    ],
+                                ],
+                            },
+                        };
+
                         ctx.telegram.sendMessage(
                             chat.tags[tag],
-                            text || caption
+                            text || caption,
+                            replyMarkup
                         );
                     }
                 }
