@@ -1,3 +1,5 @@
+const textToHtml = require(`@youtwitface/text-to-html`);
+
 module.exports = (bot, db) => {
     bot.hashtag(ctx => {
         db.groups.findOne({ chat_id: ctx.chat.id }, (err, chat) => {
@@ -44,8 +46,8 @@ module.exports = (bot, db) => {
 
                         ctx.telegram.sendMessage(
                             chat.tags[tag],
-                            text || caption,
-                            replyMarkup
+                            textToHtml(text || caption),
+                            { ...replyMarkup, parse_mode: `html` }
                         );
                     }
                 }

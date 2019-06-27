@@ -1,7 +1,6 @@
 const handlers = [
     `channelPost`,
     `newMember`,
-    // `setChannel`,
     `settings`,
     `watch`,
     `unwatch`,
