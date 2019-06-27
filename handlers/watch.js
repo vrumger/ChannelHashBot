@@ -6,7 +6,7 @@ module.exports = (bot, db) => {
 
         const { text, entities } = ctx.message;
 
-        const tags = entities
+        const tags = (entities || [])
             .filter(entity => entity.type === `hashtag`)
             .map(entity =>
                 text.slice(entity.offset, entity.offset + entity.length)
@@ -51,7 +51,7 @@ module.exports = (bot, db) => {
 
         const { text, entities } = ctx.callbackQuery.message;
 
-        let tags = entities
+        let tags = (entities || [])
             .filter(entity => entity.type === `hashtag`)
             .map(entity =>
                 text.slice(entity.offset + 1, entity.offset + entity.length)

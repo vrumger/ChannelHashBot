@@ -18,7 +18,7 @@ module.exports = (bot, db) => {
                 return;
             }
 
-            entities
+            (entities || [])
                 .filter(entity => entity.type === `hashtag`)
                 .map(entity =>
                     text.slice(entity.offset + 1, entity.offset + entity.length)
