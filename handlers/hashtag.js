@@ -46,7 +46,10 @@ module.exports = (bot, db) => {
 
                         ctx.telegram.sendMessage(
                             chat.tags[tag],
-                            textToHtml(text || caption),
+                            textToHtml(
+                                text || caption,
+                                entities || caption_entities || []
+                            ),
                             { ...replyMarkup, parse_mode: `html` }
                         );
                     }
