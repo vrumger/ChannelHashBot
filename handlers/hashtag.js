@@ -69,7 +69,10 @@ module.exports = (bot, db) => {
                         options
                     );
                 } else if (message.photo) {
-                    await ctx.createComment(parsedMessage, options);
+                    if (chat.settings.comments) {
+                        await ctx.createComment(parsedMessage, options);
+                    }
+
                     ctx.telegram.sendPhoto(
                         chat.tags[tag],
                         message.photo.pop().file_id,
@@ -82,7 +85,10 @@ module.exports = (bot, db) => {
                         options
                     );
                 } else {
-                    await ctx.createComment(parsedMessage, options);
+                    if (chat.settings.comments) {
+                        await ctx.createComment(parsedMessage, options);
+                    }
+
                     ctx.telegram.sendMessage(
                         chat.tags[tag],
                         parsedMessage,
