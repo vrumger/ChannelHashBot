@@ -1,58 +1,93 @@
 const textToHtml = require(`@youtwitface/text-to-html`);
+const commentMiddleware = require(`../middleware/createComment`);
 
 module.exports = (bot, db) => {
-    bot.hashtag(ctx => {
-        db.groups.findOne({ chat_id: ctx.chat.id }, (err, chat) => {
+    bot.entity(`hashtag`, commentMiddleware, ctx => {
+        const {
+            message_id,
+            text,
+            caption,
+            entities,
+            caption_entities,
+            ...message
+        } = ctx.message;
+
+        const tags = (entities || caption_entities || [])
+            .filter(entity => entity.type === `hashtag`)
+            .map(entity =>
+                (text || caption).slice(
+                    entity.offset + 1,
+                    entity.offset + entity.length
+                )
+            );
+
+        db.groups.findOne({ chat_id: ctx.chat.id }, async (err, chat) => {
             if (err) return console.error(err);
             if (!chat) return;
 
-            const {
-                message_id,
-                text,
-                caption,
-                entities,
-                caption_entities,
-            } = ctx.message;
+            for (const tag of tags) {
+                if (!chat.tags[tag]) continue;
 
-            const tags = (entities || caption_entities || [])
-                .filter(entity => entity.type === `hashtag`)
-                .map(entity =>
-                    (text || caption).slice(
-                        entity.offset + 1,
-                        entity.offset + entity.length
-                    )
+                // Use `!== false` in case it's `undefined`
+                if (!chat.settings || chat.settings.forwards !== false) {
+                    ctx.forwardMessage(chat.tags[tag]);
+                    continue;
+                }
+
+                const parsedMessage = textToHtml(
+                    text || caption,
+                    entities || caption_entities || []
                 );
 
-            for (const tag of tags) {
-                if (chat.tags[tag]) {
-                    // Use `!== false` in case it's `undefined`
-                    if (!chat.settings || chat.settings.forwards !== false) {
-                        ctx.forwardMessage(chat.tags[tag]);
-                    } else {
-                        const chatId = ctx.chat.id.toString().slice(4);
-                        const replyMarkup = chat.settings &&
-                            chat.settings.link && {
-                            reply_markup: {
-                                inline_keyboard: [
-                                    [
-                                        {
-                                            text: `Go to message`,
-                                            url: `https://t.me/c/${chatId}/${message_id}`,
-                                        },
-                                    ],
-                                ],
-                            },
-                        };
+                const chatId = ctx.chat.id.toString().slice(4);
+                const options = {
+                    reply_markup: chat.settings &&
+                        chat.settings.link && {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `Go to message`,
+                                    url: `https://t.me/c/${chatId}/${message_id}`,
+                                },
+                            ],
+                        ],
+                    },
+                    caption: parsedMessage,
+                    parse_mode: `html`,
+                };
 
-                        ctx.telegram.sendMessage(
-                            chat.tags[tag],
-                            textToHtml(
-                                text || caption,
-                                entities || caption_entities || []
-                            ),
-                            { ...replyMarkup, parse_mode: `html` }
-                        );
-                    }
+                if (message.audio) {
+                    ctx.telegram.sendAudio(
+                        chat.tags[tag],
+                        message.audio.file_id,
+                        options
+                    );
+                } else if (message.document) {
+                    ctx.telegram.sendDocument(
+                        chat.tags[tag],
+                        message.document.file_id,
+                        options
+                    );
+                } else if (message.photo) {
+                    await ctx.createComment(parsedMessage, options);
+                    ctx.telegram.sendPhoto(
+                        chat.tags[tag],
+                        message.photo.pop().file_id,
+                        options
+                    );
+                } else if (message.video) {
+                    ctx.telegram.sendVideo(
+                        chat.tags[tag],
+                        message.video.file_id,
+                        options
+                    );
+                } else {
+                    await ctx.createComment(parsedMessage, options);
+                    ctx.telegram.sendMessage(
+                        chat.tags[tag],
+                        parsedMessage,
+                        options
+                    );
                 }
             }
         });
