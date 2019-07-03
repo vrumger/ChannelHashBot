@@ -40,6 +40,7 @@ module.exports = (bot, db) => {
                 );
 
                 const chatId = ctx.chat.id.toString().slice(4);
+                const directLink = ctx.chat.username || `c/${chatId}`;
                 const options = {
                     reply_markup: chat.settings &&
                         chat.settings.link && {
@@ -47,7 +48,7 @@ module.exports = (bot, db) => {
                             [
                                 {
                                     text: `Go to message`,
-                                    url: `https://t.me/c/${chatId}/${message_id}`,
+                                    url: `https://t.me/${directLink}/${message_id}`,
                                 },
                             ],
                         ],
