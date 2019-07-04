@@ -9,8 +9,13 @@ module.exports = (bot, db) => {
             caption,
             entities,
             caption_entities,
+            forward_date,
             ...message
         } = ctx.message;
+
+        // Use `forward_date` becuase it's always there
+        // for every type of forward
+        if (forward_date) return;
 
         const tags = (entities || caption_entities || [])
             .filter(entity => entity.type === `hashtag`)
