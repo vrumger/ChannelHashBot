@@ -3,21 +3,26 @@ const commentMiddleware = require(`../middleware/createComment`);
 
 module.exports = (bot, db) => {
     bot.entity(`hashtag`, commentMiddleware, ctx => {
-        const {
+        let {
             message_id,
             text,
             caption,
             entities,
             caption_entities,
             forward_date,
-            ...message
+            reply_to_message,
         } = ctx.message;
 
         // Use `forward_date` becuase it's always there
         // for every type of forward
         if (forward_date) return;
 
-        const tags = (entities || caption_entities || [])
+        entities = entities || caption_entities || [];
+        const hashtagEntities = entities.filter(
+            entity => entity.type === `hashtag`
+        );
+
+        const tags = hashtagEntities
             .filter(entity => entity.type === `hashtag`)
             .map(entity =>
                 (text || caption).slice(
@@ -25,6 +30,18 @@ module.exports = (bot, db) => {
                     entity.offset + entity.length
                 )
             );
+
+        const untaggedText = hashtagEntities
+            .reduce(
+                (res, entity) =>
+                    res.slice(0, entity.offset) +
+                    res.slice(entity.offset + entity.length),
+                text
+            )
+            .trim();
+
+        const messageToForward =
+            untaggedText !== `` ? ctx.message : reply_to_message;
 
         db.groups.findOne({ chat_id: ctx.chat.id }, async (err, chat) => {
             if (err) return console.error(err);
@@ -35,7 +52,10 @@ module.exports = (bot, db) => {
 
                 // Use `!== false` in case it's `undefined`
                 if (!chat.settings || chat.settings.forwards !== false) {
-                    ctx.forwardMessage(chat.tags[tag]);
+                    ctx.telegram.forwardMessage(
+                        chat.tags[tag],
+                        messageToForward.message_id
+                    );
                     continue;
                 }
 
@@ -62,32 +82,32 @@ module.exports = (bot, db) => {
                     parse_mode: `html`,
                 };
 
-                if (message.audio) {
+                if (messageToForward.audio) {
                     ctx.telegram.sendAudio(
                         chat.tags[tag],
-                        message.audio.file_id,
+                        messageToForward.audio.file_id,
                         options
                     );
-                } else if (message.document) {
+                } else if (messageToForward.document) {
                     ctx.telegram.sendDocument(
                         chat.tags[tag],
-                        message.document.file_id,
+                        messageToForward.document.file_id,
                         options
                     );
-                } else if (message.photo) {
+                } else if (messageToForward.photo) {
                     if (chat.settings.comments) {
                         await ctx.createComment(parsedMessage, options);
                     }
 
                     ctx.telegram.sendPhoto(
                         chat.tags[tag],
-                        message.photo.pop().file_id,
+                        messageToForward.photo.pop().file_id,
                         options
                     );
-                } else if (message.video) {
+                } else if (messageToForward.video) {
                     ctx.telegram.sendVideo(
                         chat.tags[tag],
-                        message.video.file_id,
+                        messageToForward.video.file_id,
                         options
                     );
                 } else {
