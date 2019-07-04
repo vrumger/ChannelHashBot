@@ -10,9 +10,9 @@ module.exports = (bot, db) => {
 
     const generateMarkup = chat => {
         const settings = chat && chat.settings;
-        const forwards = (settings && settings.forwards) || false;
-        const link = (settings && settings.link) || false;
-        const comments = (settings && settings.comments) || false;
+        const forwards = settings && settings.forwards !== false; // Default true
+        const link = settings && settings.link === true; // Default false
+        const comments = settings && settings.comments === true; // Default false
 
         return {
             inline_keyboard: [
