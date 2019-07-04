@@ -47,8 +47,10 @@ module.exports = (bot, db) => {
             if (err) return console.error(err);
             if (!chat) return;
 
+            const sentChannels = [];
+
             for (const tag of tags) {
-                if (!chat.tags[tag]) continue;
+                if (!chat.tags[tag] || sentChannels(chat.tags[tag])) continue;
 
                 // Use `!== false` in case it's `undefined`
                 if (!chat.settings || chat.settings.forwards !== false) {
