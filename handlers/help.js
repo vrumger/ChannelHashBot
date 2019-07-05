@@ -26,7 +26,7 @@ const extra = {
 };
 
 module.exports = bot => {
-    bot.start(Composer.reply(start, extra));
-    bot.help(Composer.reply(help, extra));
-    bot.command(`setup`, Composer.reply(setup, extra));
+    bot.start(Composer.privateChat(Composer.reply(start)));
+    bot.help(Composer.privateChat(Composer.reply(help, extra)));
+    bot.command(`setup`, Composer.privateChat(Composer.reply(setup, extra)));
 };
