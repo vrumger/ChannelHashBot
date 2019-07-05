@@ -1,4 +1,5 @@
 const handlers = [
+    `help`,
     `channelPost`,
     `newMember`,
     `settings`,
