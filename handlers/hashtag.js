@@ -3,21 +3,20 @@ const commentMiddleware = require(`../middleware/createComment`);
 
 module.exports = (bot, db) => {
     bot.entity(`hashtag`, commentMiddleware, ctx => {
-        let {
+        const {
             message_id,
-            text,
-            caption,
-            entities,
-            caption_entities,
             forward_date,
-            reply_to_message,
+            reply_to_message: reply,
+            ...message
         } = ctx.message;
 
         // Use `forward_date` becuase it's always there
         // for every type of forward
         if (forward_date) return;
 
-        entities = entities || caption_entities || [];
+        let entities = message.entities || message.caption_entities || [];
+        let text = message.text || message.caption;
+
         const hashtagEntities = entities.filter(
             entity => entity.type === `hashtag`
         );
@@ -25,10 +24,7 @@ module.exports = (bot, db) => {
         const tags = hashtagEntities
             .filter(entity => entity.type === `hashtag`)
             .map(entity =>
-                (text || caption).slice(
-                    entity.offset + 1,
-                    entity.offset + entity.length
-                )
+                text.slice(entity.offset + 1, entity.offset + entity.length)
             );
 
         const untaggedText = hashtagEntities
@@ -40,8 +36,10 @@ module.exports = (bot, db) => {
             )
             .trim();
 
-        const messageToForward =
-            untaggedText !== `` ? ctx.message : reply_to_message;
+        const messageToSend = untaggedText !== `` ? ctx.message : reply;
+        text = messageToSend.text || messageToSend.caption;
+        entities =
+            messageToSend.entities || messageToSend.caption_entities || [];
 
         db.groups.findOne({ chat_id: ctx.chat.id }, async (err, chat) => {
             if (err) return console.error(err);
@@ -50,22 +48,23 @@ module.exports = (bot, db) => {
             const sentChannels = [];
 
             for (const tag of tags) {
-                if (!chat.tags[tag] || sentChannels(chat.tags[tag])) continue;
+                if (!chat.tags[tag] || sentChannels.includes(chat.tags[tag])) {
+                    continue;
+                }
+
+                sentChannels.push(chat.tags[tag]);
 
                 // Use `!== false` in case it's `undefined`
                 if (!chat.settings || chat.settings.forwards !== false) {
                     ctx.telegram.forwardMessage(
                         chat.tags[tag],
-                        messageToForward.message_id
+                        ctx.chat.id,
+                        messageToSend.message_id
                     );
                     continue;
                 }
 
-                const parsedMessage = textToHtml(
-                    text || caption,
-                    entities || caption_entities || []
-                );
-
+                const parsedMessage = textToHtml(text, entities);
                 const chatId = ctx.chat.id.toString().slice(4);
                 const directLink = ctx.chat.username || `c/${chatId}`;
                 const options = {
@@ -84,32 +83,32 @@ module.exports = (bot, db) => {
                     parse_mode: `html`,
                 };
 
-                if (messageToForward.audio) {
+                if (messageToSend.audio) {
                     ctx.telegram.sendAudio(
                         chat.tags[tag],
-                        messageToForward.audio.file_id,
+                        messageToSend.audio.file_id,
                         options
                     );
-                } else if (messageToForward.document) {
+                } else if (messageToSend.document) {
                     ctx.telegram.sendDocument(
                         chat.tags[tag],
-                        messageToForward.document.file_id,
+                        messageToSend.document.file_id,
                         options
                     );
-                } else if (messageToForward.photo) {
+                } else if (messageToSend.photo) {
                     if (chat.settings.comments) {
                         await ctx.createComment(parsedMessage, options);
                     }
 
                     ctx.telegram.sendPhoto(
                         chat.tags[tag],
-                        messageToForward.photo.pop().file_id,
+                        messageToSend.photo.pop().file_id,
                         options
                     );
-                } else if (messageToForward.video) {
+                } else if (messageToSend.video) {
                     ctx.telegram.sendVideo(
                         chat.tags[tag],
-                        messageToForward.video.file_id,
+                        messageToSend.video.file_id,
                         options
                     );
                 } else {
