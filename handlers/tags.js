@@ -22,6 +22,8 @@ module.exports = (bot, db) => {
 
             if (!chat) {
                 chat = { tags: {} };
+            } else if (!chat.tags) {
+                chat.tags = {};
             }
 
             const channels = await Promise.all(
