@@ -24,7 +24,9 @@ module.exports = (bot, db) => {
         const tags = hashtagEntities
             .filter(entity => entity.type === `hashtag`)
             .map(entity =>
-                text.slice(entity.offset + 1, entity.offset + entity.length)
+                text
+                    .slice(entity.offset + 1, entity.offset + entity.length)
+                    .toLowerCase()
             );
 
         const untaggedText = hashtagEntities
