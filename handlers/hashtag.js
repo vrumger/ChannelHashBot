@@ -3,6 +3,8 @@ const commentMiddleware = require(`../middleware/createComment`);
 
 module.exports = (bot, db) => {
     bot.entity(`hashtag`, commentMiddleware, ctx => {
+        if (!ctx.chat.type.includes(`group`)) return;
+
         const {
             message_id,
             forward_date,
