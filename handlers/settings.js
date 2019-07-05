@@ -9,10 +9,9 @@ module.exports = (bot, db) => {
     ];
 
     const generateMarkup = chat => {
-        const settings = chat && chat.settings;
-        const forwards = settings && settings.forwards !== false; // Default true
-        const link = settings && settings.link === true; // Default false
-        const comments = settings && settings.comments === true; // Default false
+        const forwards = chat.settings.forwards !== false; // Default true
+        const link = chat.settings.link === true; // Default false
+        const comments = chat.settings.comments === true; // Default false
 
         return {
             inline_keyboard: [
@@ -35,6 +34,8 @@ module.exports = (bot, db) => {
 
             if (!chat) {
                 chat = { settings: {} };
+            } else if (!chat.settings) {
+                chat.settings = {};
             }
 
             ctx.reply(
@@ -54,15 +55,18 @@ module.exports = (bot, db) => {
                 return;
             }
 
-            if (!chat || !chat.settings) {
+            if (!chat) {
                 chat = { settings: {} };
+            } else if (!chat.settings) {
+                chat.settings = {};
             }
 
             chat.settings[setting] = bool !== `true`;
 
             db.groups.update(
                 { chat_id: ctx.chat.id },
-                { $set: { settings: chat.settings } }
+                { $set: { settings: chat.settings } },
+                { upsert: true }
             );
 
             ctx.editMessageReplyMarkup(generateMarkup(chat));
