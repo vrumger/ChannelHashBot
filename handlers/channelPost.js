@@ -1,6 +1,6 @@
 module.exports = (bot, db) => {
     bot.on(`channel_post`, async ctx => {
-        if (ctx.channelPost.text.toLowerCase() === `@channelhashbot`) {
+        if (ctx.channelPost.text.toLowerCase() === `@${ctx.me}`) {
             const admins = (await ctx.getChatAdministrators())
                 .map(({ user: { id } }) => id)
                 .filter(id => id !== ctx.botInfo.id);

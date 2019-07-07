@@ -39,7 +39,9 @@ module.exports = (bot, db) => {
             }
 
             ctx.reply(
-                `Use the buttons below to configure ChannelHashBot's behavior for this group.`,
+                `Use the buttons below to configure ${
+                    ctx.me
+                }'s behavior for this group.`,
                 { reply_markup: generateMarkup(chat) }
             );
         });
