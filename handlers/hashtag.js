@@ -47,7 +47,7 @@ module.exports = (bot, db) => {
 
         db.groups.findOne({ chat_id: ctx.chat.id }, async (err, chat) => {
             if (err) return console.error(err);
-            if (!chat) return;
+            if (!chat || !chat.tags) return;
 
             const sentChannels = [];
 

@@ -72,8 +72,10 @@ module.exports = (bot, db) => {
                 return;
             }
 
-            if (chat === null) {
+            if (!chat) {
                 chat = { tags: {} };
+            } else if (!chat.tags) {
+                chat.tags = {};
             }
 
             const tagsObject = tags.reduce((tags, tag) => {
