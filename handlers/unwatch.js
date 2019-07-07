@@ -32,9 +32,9 @@ module.exports = (bot, db) => {
             );
 
             ctx.reply(
-                `The following tags have been removed:\n${tags.map(
-                    tag => `#${tag}`
-                )}`
+                `The following tags have been removed:\n${tags
+                    .map(tag => `#${tag}`)
+                    .join(`, `)}`
             );
         });
     });

@@ -28,13 +28,19 @@ module.exports = (bot, db) => {
 
             const channels = await Promise.all(
                 Object.keys(chat.tags).map(tag =>
-                    getChannelTitle(chat.tags[tag])
+                    Promise.all(
+                        // Convert to array for backwards compatibility
+                        (Array.isArray(chat.tags[tag])
+                            ? chat.tags[tag]
+                            : [chat.tags[tag]]
+                        ).map(channel => getChannelTitle(channel))
+                    )
                 )
             );
 
             ctx.reply(
                 Object.keys(chat.tags)
-                    .map((tag, i) => `» #${tag} → ${channels[i]}`)
+                    .map((tag, i) => `» #${tag} → ${channels[i].join(`, `)}`)
                     .join(`\n`) || `No tags in this chat.`
             );
         });

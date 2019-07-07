@@ -28,14 +28,22 @@ module.exports = (bot, db) => {
 
                 ctx.reply(`Choose a chat for the following tags:\n${tags}`, {
                     reply_markup: {
-                        inline_keyboard: channels.map(channel => [
-                            {
-                                text: channel.title,
-                                callback_data: `${ctx.from.id}:${ctx.chat.id}:${
-                                    channel.chat_id
-                                }`,
-                            },
-                        ]),
+                        inline_keyboard: [
+                            ...channels.map(channel => [
+                                {
+                                    text: channel.title,
+                                    callback_data: `${ctx.from.id}:${
+                                        ctx.chat.id
+                                    }:${channel.chat_id}`,
+                                },
+                            ]),
+                            [
+                                {
+                                    text: `Done 👍`,
+                                    callback_data: `${ctx.from.id}:done`,
+                                },
+                            ],
+                        ],
                     },
                 });
             }
@@ -57,11 +65,6 @@ module.exports = (bot, db) => {
                 text.slice(entity.offset + 1, entity.offset + entity.length)
             );
 
-        let tagsObject = tags.reduce(
-            (tags, tag) => ({ ...tags, [tag]: channel }),
-            {}
-        );
-
         db.groups.findOne({ chat_id: group }, (err, chat) => {
             if (err) {
                 console.log(err);
@@ -69,12 +72,21 @@ module.exports = (bot, db) => {
                 return;
             }
 
-            if (chat !== null) {
-                tagsObject = {
-                    ...chat.tags,
-                    ...tagsObject,
-                };
+            if (chat === null) {
+                chat = { tags: {} };
             }
+
+            const tagsObject = tags.reduce((tags, tag) => {
+                if (!tags[tag]) {
+                    tags[tag] = [];
+                } else if (!Array.isArray(tags[tag])) {
+                    // Convert to array for backwards compatibility
+                    tags[tag] = [tags[tag]];
+                }
+
+                tags[tag].push(channel);
+                return tags;
+            }, chat.tags);
 
             db.groups.update(
                 { chat_id: group },
@@ -83,11 +95,25 @@ module.exports = (bot, db) => {
             );
 
             ctx.answerCbQuery(`👍`);
-            ctx.editMessageText(
-                `The following tags have been saved:\n${tags.map(
-                    tag => `#${tag}`
-                )}`
-            );
         });
+    });
+
+    bot.action(/^(\d+):done$/, ctx => {
+        const from = Number(ctx.match[1]);
+
+        if (from !== ctx.from.id) return ctx.answerCbQuery(`😒`);
+
+        const { text, entities } = ctx.callbackQuery.message;
+
+        const tags = (entities || [])
+            .filter(entity => entity.type === `hashtag`)
+            .map(entity =>
+                text.slice(entity.offset, entity.offset + entity.length)
+            );
+
+        ctx.answerCbQuery(`👍`);
+        ctx.editMessageText(
+            `The following tags have been saved:\n${tags.join(`, `)}`
+        );
     });
 };
