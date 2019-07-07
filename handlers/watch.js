@@ -86,7 +86,8 @@ module.exports = (bot, db) => {
                     tags[tag] = [tags[tag]];
                 }
 
-                tags[tag].push(channel);
+                // Append and filter duplicates
+                tags[tag] = [...new Set(tags[tag].concat(channel))];
                 return tags;
             }, chat.tags);
 
