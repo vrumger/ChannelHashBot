@@ -18,19 +18,24 @@ module.exports = (bot, db) => {
                 return;
             }
 
-            (entities || [])
+            const tags = (entities || [])
                 .filter(entity => entity.type === `hashtag`)
                 .map(entity =>
                     text.slice(entity.offset + 1, entity.offset + entity.length)
-                )
-                .forEach(tag => delete chat.tags[tag]);
+                );
+
+            tags.forEach(tag => delete chat.tags[tag]);
 
             db.groups.update(
                 { chat_id: ctx.chat.id },
                 { $set: { tags: chat.tags } }
             );
 
-            ctx.reply(`Your tags have been removed.`);
+            ctx.reply(
+                `The following tags have been removed:\n${tags.map(
+                    tag => `#${tag}`
+                )}`
+            );
         });
     });
 };

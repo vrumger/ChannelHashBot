@@ -26,7 +26,7 @@ module.exports = (bot, db) => {
                     return ctx.reply(`You need to add a channel first.`);
                 }
 
-                ctx.reply(`Choose a chat for the following tags:\n\n${tags}`, {
+                ctx.reply(`Choose a chat for the following tags:\n${tags}`, {
                     reply_markup: {
                         inline_keyboard: channels.map(channel => [
                             {
@@ -51,12 +51,16 @@ module.exports = (bot, db) => {
 
         const { text, entities } = ctx.callbackQuery.message;
 
-        let tags = (entities || [])
+        const tags = (entities || [])
             .filter(entity => entity.type === `hashtag`)
             .map(entity =>
                 text.slice(entity.offset + 1, entity.offset + entity.length)
-            )
-            .reduce((tags, tag) => ({ ...tags, [tag]: channel }), {});
+            );
+
+        let tagsObject = tags.reduce(
+            (tags, tag) => ({ ...tags, [tag]: channel }),
+            {}
+        );
 
         db.groups.findOne({ chat_id: group }, (err, chat) => {
             if (err) {
@@ -66,20 +70,24 @@ module.exports = (bot, db) => {
             }
 
             if (chat !== null) {
-                tags = {
+                tagsObject = {
                     ...chat.tags,
-                    ...tags,
+                    ...tagsObject,
                 };
             }
 
             db.groups.update(
                 { chat_id: group },
-                { $set: { tags } },
+                { $set: { tags: tagsObject } },
                 { upsert: true }
             );
 
             ctx.answerCbQuery(`👍`);
-            ctx.editMessageText(`Your tags have been saved.`);
+            ctx.editMessageText(
+                `The following tags have been saved:\n${tags.map(
+                    tag => `#${tag}`
+                )}`
+            );
         });
     });
 };
