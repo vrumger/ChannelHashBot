@@ -80,17 +80,19 @@ module.exports = (bot, db) => {
                     const chatId = ctx.chat.id.toString().slice(4);
                     const directLink = ctx.chat.username || `c/${chatId}`;
                     const options = {
-                        reply_markup: chat.settings &&
-                            chat.settings.link && {
-                            inline_keyboard: [
-                                [
-                                    {
-                                        text: `Go to message`,
-                                        url: `https://t.me/${directLink}/${message_id}`,
-                                    },
-                                ],
-                            ],
-                        },
+                        reply_markup:
+                            chat.settings && chat.settings.link
+                                ? {
+                                    inline_keyboard: [
+                                        [
+                                            {
+                                                text: `Go to message`,
+                                                url: `https://t.me/${directLink}/${message_id}`,
+                                            },
+                                        ],
+                                    ],
+                                }
+                                : null,
                         caption: parsedMessage,
                         parse_mode: `html`,
                     };
