@@ -11,7 +11,7 @@ module.exports = (bot, db) => {
             .map(entity =>
                 text.slice(entity.offset, entity.offset + entity.length)
             )
-            .join(` `);
+            .join(`, `);
 
         db.channels.find(
             { admins: { $elemMatch: ctx.from.id } },
