@@ -61,6 +61,10 @@ module.exports = (ctx, next) => {
         }
 
         if (comment) {
+            if (!options.reply_markup) {
+                options.reply_markup = { inline_keyboard: [] };
+            }
+
             options.reply_markup.inline_keyboard.push([
                 {
                     text: `View Comments`,
