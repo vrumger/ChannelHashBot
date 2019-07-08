@@ -3,6 +3,17 @@ const adminMiddleware = require(`../middleware/admin`);
 module.exports = (bot, db) => {
     const getChannelTitle = chat_id => {
         return new Promise((resolve, reject) => {
+            if (chat_id >= 0) {
+                // TODO: cache names
+                return bot.telegram
+                    .getChat(chat_id)
+                    .then(user =>
+                        resolve(
+                            `${user.first_name} ${user.last_name || ``}`.trim()
+                        )
+                    );
+            }
+
             db.channels.findOne({ chat_id }, (err, channel) => {
                 if (err) reject(err);
                 else resolve(channel.title);
