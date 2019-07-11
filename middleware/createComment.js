@@ -21,7 +21,8 @@ const uploadPhoto = async photo => {
 
 module.exports = (ctx, next) => {
     ctx.downloadPhoto = async function() {
-        const photos = [...this.message.photo];
+        const message = this.message || this.editedMessage;
+        const photos = [...message.photo];
         const photo = photos.pop().file_id;
         const link = await ctx.telegram.getFileLink(photo);
 

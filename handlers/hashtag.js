@@ -2,7 +2,7 @@ const textToHtml = require(`@youtwitface/text-to-html`);
 const commentMiddleware = require(`../middleware/createComment`);
 
 module.exports = (bot, db) => {
-    bot.entity(`hashtag`, commentMiddleware, ctx => {
+    const handler = ctx => {
         if (!ctx.chat.type.includes(`group`)) return;
 
         const {
@@ -10,7 +10,7 @@ module.exports = (bot, db) => {
             forward_date,
             reply_to_message: reply,
             ...message
-        } = ctx.message;
+        } = ctx.message || ctx.editedMessage;
 
         // Use `forward_date` becuase it's always there
         // for every type of forward
@@ -141,5 +141,18 @@ module.exports = (bot, db) => {
                 }
             }
         });
+    };
+
+    bot.entity(`hashtag`, commentMiddleware, handler);
+
+    bot.on(`edited_message`, (ctx, next) => {
+        if (
+            (ctx.editedMessage.entities || []).some(
+                entity => entity.type === `hashtag`
+            )
+        ) {
+            commentMiddleware(ctx, next);
+            handler(ctx);
+        }
     });
 };
