@@ -58,7 +58,7 @@ module.exports = (bot, db) => {
         );
     });
 
-    bot.action(/^(\d+):(-\d+):(\d+)$/, ctx => {
+    bot.action(/^(\d+):(-\d+):(-?\d+)$/, ctx => {
         const from = Number(ctx.match[1]);
         const group = Number(ctx.match[2]);
         const channel = Number(ctx.match[3]);
