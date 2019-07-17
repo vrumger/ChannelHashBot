@@ -4,7 +4,7 @@ module.exports = (bot, db) => {
     bot.command(`watch`, adminMiddleware, ctx => {
         if (!ctx.chat.type.includes(`group`)) return;
 
-        const { text, entities } = ctx.message;
+        const { message_id, text, entities } = ctx.message;
 
         const tags = (entities || [])
             .filter(entity => entity.type === `hashtag`)
@@ -27,6 +27,7 @@ module.exports = (bot, db) => {
                 }
 
                 ctx.reply(`Choose a chat for the following tags:\n${tags}`, {
+                    reply_to_message_id: message_id,
                     reply_markup: {
                         inline_keyboard: [
                             ...channels.map(channel => [
@@ -110,21 +111,13 @@ module.exports = (bot, db) => {
     });
 
     bot.action(/^(\d+):done$/, ctx => {
+        const { message_id } = ctx.callbackQuery.message.reply_to_message;
         const from = Number(ctx.match[1]);
 
         if (from !== ctx.from.id) return ctx.answerCbQuery(`😒`);
 
-        const { text, entities } = ctx.callbackQuery.message;
-
-        const tags = (entities || [])
-            .filter(entity => entity.type === `hashtag`)
-            .map(entity =>
-                text.slice(entity.offset, entity.offset + entity.length)
-            );
-
         ctx.answerCbQuery(`👍`);
-        ctx.editMessageText(
-            `The following tags have been saved:\n${tags.join(`, `)}`
-        );
+        ctx.deleteMessage();
+        ctx.deleteMessage(message_id).catch(() => {});
     });
 };
