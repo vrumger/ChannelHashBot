@@ -14,6 +14,10 @@ const db = {
         filename: path.join(__dirname, `stores/chats.db`),
         autoload: true,
     }),
+    messages: new NeDB({
+        filename: path.join(__dirname, `stores/messages.db`),
+        autoload: true,
+    }),
 };
 
 bot.catch(console.error);

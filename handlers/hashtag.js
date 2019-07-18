@@ -1,23 +1,19 @@
+// TODO: cleanup
+
 const textToHtml = require(`@youtwitface/text-to-html`);
 const commentMiddleware = require(`../middleware/createComment`);
 
 module.exports = (bot, db) => {
-    const handler = ctx => {
-        if (!ctx.chat.type.includes(`group`)) return;
-
-        const {
-            message_id,
-            forward_date,
-            reply_to_message: reply,
-            ...message
-        } = ctx.message || ctx.editedMessage;
+    const getMessage = ctx => {
+        const message = ctx.message || ctx.editedMessage;
+        const { forward_date, reply_to_message: reply } = message;
 
         // Use `forward_date` becuase it's always there
         // for every type of forward
         if (forward_date) return;
 
         let entities = message.entities || message.caption_entities || [];
-        let text = message.text || message.caption;
+        let text = message.text || message.caption || ``;
 
         const hashtagEntities = entities.filter(
             entity => entity.type === `hashtag`
@@ -41,9 +37,101 @@ module.exports = (bot, db) => {
             .trim();
 
         const messageToSend = untaggedText !== `` || !reply ? message : reply;
-        text = messageToSend.text || messageToSend.caption;
+        text = messageToSend.text || messageToSend.caption || ``;
         entities =
             messageToSend.entities || messageToSend.caption_entities || [];
+
+        return {
+            message: messageToSend,
+            text,
+            entities,
+            tags,
+        };
+    };
+
+    const sendMessage = async (ctx, chat, channel, message, text, entities) => {
+        // Use `!== false` in case it's `undefined`
+        if (!chat.settings || chat.settings.forwards !== false) {
+            ctx.telegram.forwardMessage(
+                channel,
+                ctx.chat.id,
+                message.message_id
+            );
+            return;
+        }
+
+        const parsedMessage = textToHtml(text, entities);
+        const chatId = ctx.chat.id.toString().slice(4);
+        const directLink = ctx.chat.username || `c/${chatId}`;
+        const options = {
+            reply_markup:
+                chat.settings && chat.settings.link
+                    ? {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `Go to message`,
+                                    url: `https://t.me/${directLink}/${
+                                        message.message_id
+                                    }`,
+                                },
+                            ],
+                        ],
+                    }
+                    : null,
+            caption: parsedMessage,
+            parse_mode: `html`,
+        };
+
+        let sentMessage;
+
+        if (message.audio) {
+            sentMessage = await ctx.telegram.sendAudio(
+                channel,
+                message.audio.file_id,
+                options
+            );
+        } else if (message.document) {
+            sentMessage = await ctx.telegram.sendDocument(
+                channel,
+                message.document.file_id,
+                options
+            );
+        } else if (message.photo) {
+            if (chat.settings.comments) {
+                await ctx.createComment(parsedMessage, options);
+            }
+
+            sentMessage = await ctx.telegram.sendPhoto(
+                channel,
+                message.photo.pop().file_id,
+                options
+            );
+        } else if (message.video) {
+            sentMessage = await ctx.telegram.sendVideo(
+                channel,
+                message.video.file_id,
+                options
+            );
+        } else {
+            if (chat.settings.comments) {
+                await ctx.createComment(parsedMessage, options);
+            }
+
+            sentMessage = await ctx.telegram.sendMessage(
+                channel,
+                parsedMessage,
+                options
+            );
+        }
+
+        return sentMessage;
+    };
+
+    const handler = ctx => {
+        if (!ctx.chat.type.includes(`group`)) return;
+
+        const { message, text, entities, tags } = getMessage(ctx);
 
         db.groups.findOne({ chat_id: ctx.chat.id }, async (err, chat) => {
             if (err) return console.error(err);
@@ -66,78 +154,22 @@ module.exports = (bot, db) => {
                         continue;
                     }
 
-                    // Use `!== false` in case it's `undefined`
-                    if (!chat.settings || chat.settings.forwards !== false) {
-                        ctx.telegram.forwardMessage(
-                            channel,
-                            ctx.chat.id,
-                            messageToSend.message_id
-                        );
-                        continue;
-                    }
-
-                    const parsedMessage = textToHtml(text, entities);
-                    const chatId = ctx.chat.id.toString().slice(4);
-                    const directLink = ctx.chat.username || `c/${chatId}`;
-                    const options = {
-                        reply_markup:
-                            chat.settings && chat.settings.link
-                                ? {
-                                    inline_keyboard: [
-                                        [
-                                            {
-                                                text: `Go to message`,
-                                                url: `https://t.me/${directLink}/${message_id}`,
-                                            },
-                                        ],
-                                    ],
-                                }
-                                : null,
-                        caption: parsedMessage,
-                        parse_mode: `html`,
-                    };
-
-                    if (messageToSend.audio) {
-                        ctx.telegram.sendAudio(
-                            channel,
-                            messageToSend.audio.file_id,
-                            options
-                        );
-                    } else if (messageToSend.document) {
-                        ctx.telegram.sendDocument(
-                            channel,
-                            messageToSend.document.file_id,
-                            options
-                        );
-                    } else if (messageToSend.photo) {
-                        if (chat.settings.comments) {
-                            await ctx.createComment(parsedMessage, options);
-                        }
-
-                        ctx.telegram.sendPhoto(
-                            channel,
-                            messageToSend.photo.pop().file_id,
-                            options
-                        );
-                    } else if (messageToSend.video) {
-                        ctx.telegram.sendVideo(
-                            channel,
-                            messageToSend.video.file_id,
-                            options
-                        );
-                    } else {
-                        if (chat.settings.comments) {
-                            await ctx.createComment(parsedMessage, options);
-                        }
-
-                        ctx.telegram.sendMessage(
-                            channel,
-                            parsedMessage,
-                            options
-                        );
-                    }
+                    const sentMessage = await sendMessage(
+                        ctx,
+                        chat,
+                        channel,
+                        message,
+                        text,
+                        entities
+                    );
 
                     sentChannels.push(channel);
+                    db.messages.insert({
+                        chat_id: ctx.chat.id,
+                        message_id: message.message_id,
+                        channel_id: channel,
+                        channel_message_id: sentMessage.message_id,
+                    });
                 }
             }
         });
@@ -146,13 +178,123 @@ module.exports = (bot, db) => {
     bot.entity(`hashtag`, commentMiddleware, handler);
 
     bot.on(`edited_message`, (ctx, next) => {
-        if (
-            (ctx.editedMessage.entities || []).some(
-                entity => entity.type === `hashtag`
-            )
-        ) {
-            commentMiddleware(ctx, next);
-            handler(ctx);
-        }
+        if (!ctx.chat.type.includes(`group`)) return;
+
+        const { message, text, entities } = getMessage(ctx);
+
+        db.messages.find(
+            { chat_id: ctx.chat.id, message_id: message.message_id },
+            (err, channelMessages) => {
+                if (err) return console.error(err);
+
+                if (!channelMessages.length) {
+                    const entities =
+                        ctx.editedMessage.entities ||
+                        ctx.editedMessage.caption_entities ||
+                        [];
+
+                    if (entities.some(entity => entity.type === `hashtag`)) {
+                        commentMiddleware(ctx, next);
+                        handler(ctx);
+                    }
+
+                    return;
+                }
+
+                db.groups.findOne({ chat_id: ctx.chat.id }, (err, chat) => {
+                    if (err) return console.error(err);
+                    if (!chat) return;
+
+                    for (const channelMessage of channelMessages) {
+                        // Use `!== false` in case it's `undefined`
+                        if (
+                            !chat.settings ||
+                            chat.settings.forwards !== false
+                        ) {
+                            ctx.telegram.forwardMessage(
+                                channelMessage.channel_id,
+                                ctx.chat.id,
+                                message.message_id
+                            );
+
+                            ctx.telegram
+                                .deleteMessage(
+                                    channelMessage.channel_id,
+                                    channelMessage.channel_message_id
+                                )
+                                .catch(() => {});
+
+                            continue;
+                        }
+
+                        const parsedMessage = textToHtml(text, entities);
+                        const chatId = ctx.chat.id.toString().slice(4);
+                        const directLink = ctx.chat.username || `c/${chatId}`;
+                        const reply_markup =
+                            chat.settings && chat.settings.link
+                                ? {
+                                    inline_keyboard: [
+                                        [
+                                            {
+                                                text: `Go to message`,
+                                                url: `https://t.me/${directLink}/${
+                                                    message.message_id
+                                                }`,
+                                            },
+                                        ],
+                                    ],
+                                }
+                                : null;
+
+                        const func =
+                            message.audio ||
+                            message.document ||
+                            message.photo ||
+                            message.video
+                                ? ctx.telegram.editMessageCaption
+                                : ctx.telegram.editMessageText;
+
+                        func.call(
+                            ctx.telegram,
+                            channelMessage.channel_id,
+                            channelMessage.channel_message_id,
+                            null,
+                            parsedMessage,
+                            {
+                                reply_markup,
+                                parse_mode: `html`,
+                            }
+                        ).catch(async err => {
+                            console.log(err);
+
+                            if (
+                                err.description ===
+                                `Bad Request: message to edit not found`
+                            ) {
+                                commentMiddleware(ctx, next);
+
+                                const sentMessage = await sendMessage(
+                                    ctx,
+                                    chat,
+                                    channelMessage.channel_id,
+                                    message,
+                                    parsedMessage,
+                                    []
+                                );
+
+                                db.messages.insert({
+                                    chat_id: ctx.chat.id,
+                                    message_id: message.message_id,
+                                    channel_id: channelMessage.channel_id,
+                                    channel_message_id: sentMessage.message_id,
+                                });
+                            } else {
+                                console.log(err);
+                            }
+                        });
+                    }
+                });
+            }
+        );
     });
 };
