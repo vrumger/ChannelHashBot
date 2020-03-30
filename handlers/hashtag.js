@@ -2,8 +2,38 @@
 
 const textToHtml = require(`@youtwitface/text-to-html`);
 const commentMiddleware = require(`../middleware/createComment`);
+const formatLikeKeyboard = require(`../middleware/formatLikeKeyboard`);
 
 module.exports = (bot, db) => {
+    const countLikes = require(`../middleware/countLikes`)(db);
+
+    const getReplyMarkup = ({
+        chat,
+        directLink,
+        message_id,
+        plus = 0,
+        minus = 0,
+    }) => {
+        const inlineKeyboard = [];
+
+        if (chat.settings && chat.settings.likes) {
+            inlineKeyboard.push(formatLikeKeyboard(plus, minus));
+        }
+
+        if (chat.settings && chat.settings.link) {
+            inlineKeyboard.push([
+                {
+                    text: `Go to message`,
+                    url: `https://t.me/${directLink}/${message_id}`,
+                },
+            ]);
+        }
+
+        return {
+            inline_keyboard: inlineKeyboard,
+        };
+    };
+
     const getMessage = ctx => {
         const message = ctx.message || ctx.editedMessage;
         const { forward_date, reply_to_message: reply } = message;
@@ -62,22 +92,15 @@ module.exports = (bot, db) => {
         const parsedMessage = textToHtml(text, entities);
         const chatId = ctx.chat.id.toString().slice(4);
         const directLink = ctx.chat.username || `c/${chatId}`;
+
         const options = {
-            reply_markup:
-                chat.settings && chat.settings.link
-                    ? {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: `Go to message`,
-                                    url: `https://t.me/${directLink}/${
-                                        message.message_id
-                                    }`,
-                                },
-                            ],
-                        ],
-                    }
-                    : null,
+            reply_markup: {
+                inline_keyboard: getReplyMarkup({
+                    chat,
+                    directLink,
+                    message_id: message.message_id,
+                }),
+            },
             caption: parsedMessage,
             parse_mode: `html`,
         };
@@ -180,9 +203,10 @@ module.exports = (bot, db) => {
         if (!ctx.chat.type.includes(`group`)) return;
 
         const { message, text, entities } = getMessage(ctx);
+        const { id: chat_id } = ctx.chat;
 
         db.messages.find(
-            { chat_id: ctx.chat.id, message_id: message.message_id },
+            { chat_id, message_id: message.message_id },
             (err, channelMessages) => {
                 if (err) return console.error(err);
 
@@ -200,7 +224,7 @@ module.exports = (bot, db) => {
                     return;
                 }
 
-                db.groups.findOne({ chat_id: ctx.chat.id }, (err, chat) => {
+                db.groups.findOne({ chat_id }, async (err, chat) => {
                     if (err) return console.error(err);
                     if (!chat) return;
 
@@ -229,21 +253,6 @@ module.exports = (bot, db) => {
                         const parsedMessage = textToHtml(text, entities);
                         const chatId = ctx.chat.id.toString().slice(4);
                         const directLink = ctx.chat.username || `c/${chatId}`;
-                        const reply_markup =
-                            chat.settings && chat.settings.link
-                                ? {
-                                    inline_keyboard: [
-                                        [
-                                            {
-                                                text: `Go to message`,
-                                                url: `https://t.me/${directLink}/${
-                                                    message.message_id
-                                                }`,
-                                            },
-                                        ],
-                                    ],
-                                }
-                                : null;
 
                         const func =
                             message.audio ||
@@ -253,6 +262,11 @@ module.exports = (bot, db) => {
                                 ? ctx.telegram.editMessageCaption
                                 : ctx.telegram.editMessageText;
 
+                        const [plus, minus] = await countLikes(
+                            chat_id,
+                            channelMessage.channel_message_id,
+                        );
+
                         func.call(
                             ctx.telegram,
                             channelMessage.channel_id,
@@ -260,7 +274,13 @@ module.exports = (bot, db) => {
                             null,
                             parsedMessage,
                             {
-                                reply_markup,
+                                reply_markup: getReplyMarkup({
+                                    chat,
+                                    directLink,
+                                    message_id: message.message_id,
+                                    plus,
+                                    minus,
+                                }),
                                 parse_mode: `html`,
                             }
                         ).catch(async err => {

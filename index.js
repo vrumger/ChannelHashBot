@@ -18,6 +18,10 @@ const db = {
         filename: path.join(__dirname, `stores/messages.db`),
         autoload: true,
     }),
+    likes: new NeDB({
+        filename: path.join(__dirname, `stores/likes.db`),
+        autoload: true,
+    }),
 };
 
 bot.catch(console.error);

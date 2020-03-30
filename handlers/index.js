@@ -7,6 +7,7 @@ const handlers = [
     `unwatch`,
     `tags`,
     `hashtag`,
+    `likes`,
 ];
 
 module.exports = (bot, db) =>

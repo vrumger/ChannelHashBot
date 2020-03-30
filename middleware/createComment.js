@@ -79,5 +79,5 @@ module.exports = (ctx, next) => {
         }
     };
 
-    next(ctx);
+    next();
 };

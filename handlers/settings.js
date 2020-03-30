@@ -12,12 +12,14 @@ module.exports = (bot, db) => {
         const forwards = chat.settings.forwards !== false; // Default true
         const link = chat.settings.link === true; // Default false
         const comments = chat.settings.comments === true; // Default false
+        const likes = chat.settings.likes === true; // Default false
 
         return {
             inline_keyboard: [
                 button(`Forwards`, `forwards`, forwards),
                 button(`Direct Link`, `link`, link),
                 button(`Comments`, `comments`, comments),
+                button(`Likes`, `likes`, likes),
             ],
         };
     };
