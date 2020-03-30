@@ -52,12 +52,11 @@ module.exports = (bot, db) => {
     const sendMessage = async (ctx, chat, channel, message, text, entities) => {
         // Use `!== false` in case it's `undefined`
         if (!chat.settings || chat.settings.forwards !== false) {
-            ctx.telegram.forwardMessage(
+            return await ctx.telegram.forwardMessage(
                 channel,
                 ctx.chat.id,
                 message.message_id
             );
-            return;
         }
 
         const parsedMessage = textToHtml(text, entities);
