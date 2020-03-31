@@ -94,13 +94,11 @@ module.exports = (bot, db) => {
         const directLink = ctx.chat.username || `c/${chatId}`;
 
         const options = {
-            reply_markup: {
-                inline_keyboard: getReplyMarkup({
-                    chat,
-                    directLink,
-                    message_id: message.message_id,
-                }),
-            },
+            reply_markup: getReplyMarkup({
+                chat,
+                directLink,
+                message_id: message.message_id,
+            }),
             caption: parsedMessage,
             parse_mode: `html`,
         };
