@@ -12,7 +12,7 @@ module.exports = (bot, db) => {
             );
 
             const reply = await ctx.reply(
-                `Success. This message will automatically delete in 5 seconds.`,
+                `Success. This message will automatically be deleted in 5 seconds.`,
             );
             ctx.deleteMessage();
 
