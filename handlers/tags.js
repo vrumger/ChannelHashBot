@@ -9,8 +9,8 @@ module.exports = (bot, db) => {
                     .getChat(chat_id)
                     .then(user =>
                         resolve(
-                            `${user.first_name} ${user.last_name || ``}`.trim()
-                        )
+                            `${user.first_name} ${user.last_name || ``}`.trim(),
+                        ),
                     );
             }
 
@@ -44,15 +44,15 @@ module.exports = (bot, db) => {
                         (Array.isArray(chat.tags[tag])
                             ? chat.tags[tag]
                             : [chat.tags[tag]]
-                        ).map(channel => getChannelTitle(channel))
-                    )
-                )
+                        ).map(channel => getChannelTitle(channel)),
+                    ),
+                ),
             );
 
             ctx.reply(
                 Object.keys(chat.tags)
                     .map((tag, i) => `» #${tag} → ${channels[i].join(`, `)}`)
-                    .join(`\n`) || `No tags in this chat.`
+                    .join(`\n`) || `No tags in this chat.`,
             );
         });
     });

@@ -9,7 +9,7 @@ module.exports = (bot, db) => {
         const tags = (entities || [])
             .filter(entity => entity.type === `hashtag`)
             .map(entity =>
-                text.slice(entity.offset, entity.offset + entity.length)
+                text.slice(entity.offset, entity.offset + entity.length),
             )
             .join(`, `);
 
@@ -33,17 +33,13 @@ module.exports = (bot, db) => {
                             ...channels.map(channel => [
                                 {
                                     text: channel.title,
-                                    callback_data: `${ctx.from.id}:${
-                                        ctx.chat.id
-                                    }:${channel.chat_id}`,
+                                    callback_data: `${ctx.from.id}:${ctx.chat.id}:${channel.chat_id}`,
                                 },
                             ]),
                             [
                                 {
                                     text: `My Private Messages 🗨`,
-                                    callback_data: `${ctx.from.id}:${
-                                        ctx.chat.id
-                                    }:${ctx.from.id}`,
+                                    callback_data: `${ctx.from.id}:${ctx.chat.id}:${ctx.from.id}`,
                                 },
                             ],
                             [
@@ -55,7 +51,7 @@ module.exports = (bot, db) => {
                         ],
                     },
                 });
-            }
+            },
         );
     });
 
@@ -71,7 +67,7 @@ module.exports = (bot, db) => {
         const tags = (entities || [])
             .filter(entity => entity.type === `hashtag`)
             .map(entity =>
-                text.slice(entity.offset + 1, entity.offset + entity.length)
+                text.slice(entity.offset + 1, entity.offset + entity.length),
             );
 
         db.groups.findOne({ chat_id: group }, (err, chat) => {
@@ -103,7 +99,7 @@ module.exports = (bot, db) => {
             db.groups.update(
                 { chat_id: group },
                 { $set: { tags: tagsObject } },
-                { upsert: true }
+                { upsert: true },
             );
 
             ctx.answerCbQuery(`👍`);

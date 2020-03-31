@@ -8,11 +8,11 @@ module.exports = (bot, db) => {
             db.channels.update(
                 { chat_id: ctx.chat.id },
                 { $set: { admins, title: ctx.chat.title } },
-                { upsert: true }
+                { upsert: true },
             );
 
             const reply = await ctx.reply(
-                `Success. This message will automatically delete in 5 seconds.`
+                `Success. This message will automatically delete in 5 seconds.`,
             );
             ctx.deleteMessage();
 

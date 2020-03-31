@@ -46,7 +46,7 @@ module.exports = (bot, db) => {
         let text = message.text || message.caption || ``;
 
         const hashtagEntities = entities.filter(
-            entity => entity.type === `hashtag`
+            entity => entity.type === `hashtag`,
         );
 
         const tags = hashtagEntities
@@ -54,7 +54,7 @@ module.exports = (bot, db) => {
             .map(entity =>
                 text
                     .slice(entity.offset + 1, entity.offset + entity.length)
-                    .toLowerCase()
+                    .toLowerCase(),
             );
 
         const untaggedText = hashtagEntities
@@ -62,7 +62,7 @@ module.exports = (bot, db) => {
                 (res, entity) =>
                     res.slice(0, entity.offset) +
                     res.slice(entity.offset + entity.length),
-                text
+                text,
             )
             .trim();
 
@@ -85,7 +85,7 @@ module.exports = (bot, db) => {
             return await ctx.telegram.forwardMessage(
                 channel,
                 ctx.chat.id,
-                message.message_id
+                message.message_id,
             );
         }
 
@@ -109,13 +109,13 @@ module.exports = (bot, db) => {
             sentMessage = await ctx.telegram.sendAudio(
                 channel,
                 message.audio.file_id,
-                options
+                options,
             );
         } else if (message.document) {
             sentMessage = await ctx.telegram.sendDocument(
                 channel,
                 message.document.file_id,
-                options
+                options,
             );
         } else if (message.photo) {
             if (chat.settings.comments) {
@@ -125,13 +125,13 @@ module.exports = (bot, db) => {
             sentMessage = await ctx.telegram.sendPhoto(
                 channel,
                 message.photo.pop().file_id,
-                options
+                options,
             );
         } else if (message.video) {
             sentMessage = await ctx.telegram.sendVideo(
                 channel,
                 message.video.file_id,
-                options
+                options,
             );
         } else {
             if (chat.settings.comments) {
@@ -141,7 +141,7 @@ module.exports = (bot, db) => {
             sentMessage = await ctx.telegram.sendMessage(
                 channel,
                 parsedMessage,
-                options
+                options,
             );
         }
 
@@ -180,7 +180,7 @@ module.exports = (bot, db) => {
                         channel,
                         message,
                         text,
-                        entities
+                        entities,
                     );
 
                     sentChannels.push(channel);
@@ -235,13 +235,13 @@ module.exports = (bot, db) => {
                             ctx.telegram.forwardMessage(
                                 channelMessage.channel_id,
                                 ctx.chat.id,
-                                message.message_id
+                                message.message_id,
                             );
 
                             ctx.telegram
                                 .deleteMessage(
                                     channelMessage.channel_id,
-                                    channelMessage.channel_message_id
+                                    channelMessage.channel_message_id,
                                 )
                                 .catch(() => {});
 
@@ -280,7 +280,7 @@ module.exports = (bot, db) => {
                                     minus,
                                 }),
                                 parse_mode: `html`,
-                            }
+                            },
                         ).catch(async err => {
                             console.log(err);
 
@@ -296,7 +296,7 @@ module.exports = (bot, db) => {
                                     channelMessage.channel_id,
                                     message,
                                     parsedMessage,
-                                    []
+                                    [],
                                 );
 
                                 db.messages.insert({
@@ -311,7 +311,7 @@ module.exports = (bot, db) => {
                         });
                     }
                 });
-            }
+            },
         );
     });
 };

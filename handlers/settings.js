@@ -41,10 +41,8 @@ module.exports = (bot, db) => {
             }
 
             ctx.reply(
-                `Use the buttons below to configure ${
-                    ctx.me
-                }'s behavior for this group.`,
-                { reply_markup: generateMarkup(chat) }
+                `Use the buttons below to configure ${ctx.me}'s behavior for this group.`,
+                { reply_markup: generateMarkup(chat) },
             );
         });
     });
@@ -70,7 +68,7 @@ module.exports = (bot, db) => {
             db.groups.update(
                 { chat_id: ctx.chat.id },
                 { $set: { settings: chat.settings } },
-                { upsert: true }
+                { upsert: true },
             );
 
             ctx.editMessageReplyMarkup(generateMarkup(chat));

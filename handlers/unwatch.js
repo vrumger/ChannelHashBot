@@ -21,20 +21,23 @@ module.exports = (bot, db) => {
             const tags = (entities || [])
                 .filter(entity => entity.type === `hashtag`)
                 .map(entity =>
-                    text.slice(entity.offset + 1, entity.offset + entity.length)
+                    text.slice(
+                        entity.offset + 1,
+                        entity.offset + entity.length,
+                    ),
                 );
 
             tags.forEach(tag => delete chat.tags[tag]);
 
             db.groups.update(
                 { chat_id: ctx.chat.id },
-                { $set: { tags: chat.tags } }
+                { $set: { tags: chat.tags } },
             );
 
             ctx.reply(
                 `The following tags have been removed:\n${tags
                     .map(tag => `#${tag}`)
-                    .join(`, `)}`
+                    .join(`, `)}`,
             );
         });
     });
