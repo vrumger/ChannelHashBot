@@ -1,22 +1,33 @@
+const escapeHtml = require(`@youtwitface/escape-html`);
 const adminMiddleware = require(`../middleware/admin`);
 
 module.exports = (bot, db) => {
+    const formatName = channel => {
+        const title = escapeHtml(
+            channel.title
+                ? channel.title
+                : `${channel.first_name} ${channel.last_name || ``}`.trim(),
+        );
+
+        if (!channel.username) {
+            return title;
+        }
+
+        return `<a href="https://t.me/${channel.username}">${title}</a>`;
+    };
+
     const getChannelTitle = chat_id => {
         return new Promise((resolve, reject) => {
             if (chat_id >= 0) {
                 // TODO: cache names
                 return bot.telegram
                     .getChat(chat_id)
-                    .then(user =>
-                        resolve(
-                            `${user.first_name} ${user.last_name || ``}`.trim(),
-                        ),
-                    );
+                    .then(user => resolve(formatName(user)));
             }
 
             db.channels.findOne({ chat_id }, (err, channel) => {
                 if (err) reject(err);
-                else resolve(channel.title);
+                else resolve(formatName(channel));
             });
         });
     };
@@ -38,16 +49,18 @@ module.exports = (bot, db) => {
             }
 
             const channels = Object.entries(chat.tags)
-                .reduce((result, [tag, channels]) => {
+                .reduce((result, [_tag, channels]) => {
+                    const tag = escapeHtml(`#${_tag}`);
                     channels = Array.isArray(channels) ? channels : [channels];
 
                     channels.forEach(channel => {
                         if (channel in result) {
-                            result[channel].push(`#${tag}`);
+                            result[channel].push(tag);
                         } else {
-                            result[channel] = [`#${tag}`];
+                            result[channel] = [tag];
                         }
                     });
+
                     return result;
                 }, {});
 
@@ -58,13 +71,16 @@ module.exports = (bot, db) => {
                     return titles;
                 }, Promise.resolve({}));
 
-            ctx.reply(
-                Object.entries(channels)
-                    .map(([channel, tags]) =>
-                        `» ${tags.join(`, `)} → ${titles[channel]}`,
-                    )
-                    .join(`\n`) || `No tags in this chat.`,
-            );
+            const message =Object.entries(channels)
+                .map(([channel, tags]) =>
+                    `» ${tags.join(`, `)} → ${titles[channel]}`,
+                )
+                .join(`\n`) || `No tags in this chat.`;
+
+            ctx.reply(message, {
+                parse_mode: `html`,
+                disable_web_page_preview: true,
+            });
         });
     });
 };
