@@ -37,21 +37,30 @@ module.exports = (bot, db) => {
                 chat.tags = {};
             }
 
-            const channels = await Promise.all(
-                Object.keys(chat.tags).map(tag =>
-                    Promise.all(
-                        // Convert to array for backwards compatibility
-                        (Array.isArray(chat.tags[tag])
-                            ? chat.tags[tag]
-                            : [chat.tags[tag]]
-                        ).map(channel => getChannelTitle(channel)),
-                    ),
-                ),
-            );
+            const channels = Object.entries(chat.tags)
+                .reduce((result, [tag, channels]) => {
+                    channels.forEach(channel => {
+                        if (channel in result) {
+                            result[channel].push(`#${tag}`);
+                        } else {
+                            result[channel] = [`#${tag}`];
+                        }
+                    });
+                    return result;
+                }, {});
+
+            const titles = await Object.keys(channels)
+                .reduce(async (promise, channel) => {
+                    const titles = await promise;
+                    titles[channel] = await getChannelTitle(Number(channel));
+                    return titles;
+                }, Promise.resolve({}));
 
             ctx.reply(
-                Object.keys(chat.tags)
-                    .map((tag, i) => `» #${tag} → ${channels[i].join(`, `)}`)
+                Object.entries(channels)
+                    .map(([channel, tags]) =>
+                        `» ${tags.join(`, `)} → ${titles[channel]}`,
+                    )
                     .join(`\n`) || `No tags in this chat.`,
             );
         });
