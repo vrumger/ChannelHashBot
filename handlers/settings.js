@@ -1,10 +1,16 @@
+const escapeHtml = require(`@youtwitface/escape-html`);
 const adminMiddleware = require(`../middleware/admin`);
 
+const messageErrors = [
+    `Forbidden: bot can't initiate conversation with a user`,
+    `Forbidden: bot was blocked by the user`,
+];
+
 module.exports = (bot, db) => {
-    const button = (text, data, state) => [
+    const button = (text, chatId, data, enabled) => [
         {
-            text: `${text} ${state ? `✅` : `❌`}`,
-            callback_data: `settings:${data}:${state}`,
+            text: `${text} ${enabled ? `✅` : `❌`}`,
+            callback_data: `settings:${chatId}:${data}:${enabled}`,
         },
     ];
 
@@ -16,18 +22,18 @@ module.exports = (bot, db) => {
 
         return {
             inline_keyboard: [
-                button(`Forwards`, `forwards`, forwards),
-                button(`Direct Link`, `link`, link),
-                button(`Comments`, `comments`, comments),
-                button(`Likes`, `likes`, likes),
+                button(`Forwards`, chat.chat_id, `forwards`, forwards),
+                button(`Direct Link`, chat.chat_id, `link`, link),
+                button(`Comments`, chat.chat_id, `comments`, comments),
+                button(`Likes`, chat.chat_id, `likes`, likes),
             ],
         };
     };
 
-    bot.command(`settings`, adminMiddleware, ctx => {
+    bot.command(`settings`, adminMiddleware(), ctx => {
         if (!ctx.chat.type.includes(`group`)) return;
 
-        db.groups.findOne({ chat_id: ctx.chat.id }, (err, chat) => {
+        db.groups.findOne({ chat_id: ctx.chat.id }, async (err, chat) => {
             if (err) {
                 console.error(err);
                 ctx.reply(`There was an error.`);
@@ -40,38 +46,71 @@ module.exports = (bot, db) => {
                 chat.settings = {};
             }
 
-            ctx.reply(
-                `Use the buttons below to configure ${ctx.me}'s behavior for this group.`,
-                { reply_markup: generateMarkup(chat) },
-            );
+            const chatTitle = escapeHtml(ctx.chat.title);
+            const chatLink = ctx.chat.username
+                ? `<a href="https://t.me/${ctx.chat.username}">${chatTitle}</a>`
+                : chatTitle;
+            const message = `Use the buttons below to configure ${ctx.me}'s behavior for ${chatLink}.`;
+            const messageOptions = {
+                reply_markup: generateMarkup(chat),
+                disable_web_page_preview: true,
+                parse_mode: `html`,
+            };
+
+            try {
+                await ctx.telegram.sendMessage(
+                    ctx.from.id,
+                    message,
+                    messageOptions,
+                );
+                ctx.deleteMessage().catch(() => {});
+            } catch (err) {
+                if (messageErrors.includes(err.description)) {
+                    ctx.reply(message, messageOptions);
+                } else {
+                    console.error(err);
+                }
+            }
         });
     });
 
-    bot.action(/^settings:([^:]+):(true|false)$/, adminMiddleware, ctx => {
-        const [, setting, bool] = ctx.match;
+    bot.action(
+        /^settings:(-\d+):([^:]+):(true|false)$/,
+        adminMiddleware(true),
+        async ctx => {
+            const [, _chatId, setting, bool] = ctx.match;
+            const chatId = Number(_chatId);
 
-        db.groups.findOne({ chat_id: ctx.chat.id }, (err, chat) => {
-            if (err) {
-                console.error(err);
-                ctx.reply(`There was an error.`);
-                return;
+            const isAdmin = await ctx.isAdmin(chatId, ctx.from.id);
+
+            if (!isAdmin) {
+                ctx.answerCbQuery(`You are not admin in this group.`);
+                return ctx.deleteMessage();
             }
 
-            if (!chat) {
-                chat = { settings: {} };
-            } else if (!chat.settings) {
-                chat.settings = {};
-            }
+            db.groups.findOne({ chat_id: chatId }, (err, chat) => {
+                if (err) {
+                    console.error(err);
+                    ctx.answerCbQuery(`There was an error.`);
+                    return;
+                }
 
-            chat.settings[setting] = bool !== `true`;
+                if (!chat) {
+                    chat = { settings: {} };
+                } else if (!chat.settings) {
+                    chat.settings = {};
+                }
 
-            db.groups.update(
-                { chat_id: ctx.chat.id },
-                { $set: { settings: chat.settings } },
-                { upsert: true },
-            );
+                chat.settings[setting] = bool !== `true`;
 
-            ctx.editMessageReplyMarkup(generateMarkup(chat));
-        });
-    });
+                db.groups.update(
+                    { chat_id: chatId },
+                    { $set: { settings: chat.settings } },
+                    { upsert: true },
+                );
+
+                ctx.editMessageReplyMarkup(generateMarkup(chat));
+            });
+        },
+    );
 };
