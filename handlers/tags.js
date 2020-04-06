@@ -39,6 +39,8 @@ module.exports = (bot, db) => {
 
             const channels = Object.entries(chat.tags)
                 .reduce((result, [tag, channels]) => {
+                    channels = Array.isArray(channels) ? channels : [channels];
+
                     channels.forEach(channel => {
                         if (channel in result) {
                             result[channel].push(`#${tag}`);
