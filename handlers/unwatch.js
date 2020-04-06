@@ -1,7 +1,7 @@
 const adminMiddleware = require(`../middleware/admin`);
 
 module.exports = (bot, db) => {
-    bot.command(`unwatch`, adminMiddleware, ctx => {
+    bot.command(`unwatch`, adminMiddleware(), ctx => {
         if (!ctx.chat.type.includes(`group`)) return;
 
         const { text, entities } = ctx.message;

@@ -21,7 +21,7 @@ module.exports = (bot, db) => {
         });
     };
 
-    bot.command(`tags`, adminMiddleware, ctx => {
+    bot.command(`tags`, adminMiddleware(), ctx => {
         if (!ctx.chat.type.includes(`group`)) return;
 
         db.groups.findOne({ chat_id: ctx.chat.id }, async (err, chat) => {
