@@ -1,9 +1,13 @@
-require(`dotenv`).config();
+import path from 'path';
+import NeDB from 'nedb';
+import Telegraf from 'telegraf';
+import dotenv from 'dotenv';
 
-const path = require(`path`);
-const NeDB = require(`nedb`);
-const Telegraf = require(`telegraf`);
-const bot = new Telegraf(process.env.BOT_TOKEN);
+import addHandlers from './handlers';
+
+dotenv.config();
+
+const bot = new Telegraf(process.env.BOT_TOKEN as string);
 
 const db = {
     channels: new NeDB({
@@ -30,6 +34,8 @@ bot.use((ctx, next) => {
     if (!ctx.from || ctx.from.id !== 777000) next();
 });
 
-require(`./handlers`)(bot, db);
+addHandlers(bot, db);
 
-bot.launch();
+bot.launch().then(() => {
+    console.log(`@${bot.options.username} is running...`);
+});

@@ -1,6 +1,8 @@
-const request = require(`request-promise`);
+import request from 'request-promise';
+import { TContext, TNext } from '../typings';
+import { InlineKeyboardMarkup } from 'telegraf/typings/telegram-types';
 
-const uploadPhoto = async photo => {
+const uploadPhoto = async (photo: any) => {
     const uploadedPhoto = await request.post({
         method: `POST`,
         uri: `https://telegra.ph/upload`,
@@ -19,12 +21,12 @@ const uploadPhoto = async photo => {
     return `https://telegra.ph${uploadedPhoto[0].src}`;
 };
 
-module.exports = (ctx, next) => {
-    ctx.downloadPhoto = async function() {
-        const message = this.message || this.editedMessage;
-        const photos = [...message.photo];
-        const photo = photos.pop().file_id;
-        const link = await ctx.telegram.getFileLink(photo);
+export default (ctx: TContext, next: TNext) => {
+    ctx.downloadPhoto = async function () {
+        const message = (this.message || this.editedMessage)!;
+        const photos = [...message.photo!];
+        const photo = photos.pop()!.file_id;
+        const link = await this.telegram.getFileLink(photo);
 
         return await request({
             uri: link,
@@ -32,10 +34,12 @@ module.exports = (ctx, next) => {
         });
     };
 
-    ctx.createComment = async (text, options) => {
+    ctx.createComment = async function (text: string, options) {
+        const message = (this.message || this.editedMessage)!;
+
         let comment;
-        const commentOptions = {
-            api_key: process.env.COMMENTS_API_KEY,
+        const commentOptions: { [k: string]: any } = {
+            api_key: process.env.COMMENTS_API_KEY as string,
             owner_id: 234480941,
             type: `text`,
             caption: text,
@@ -44,8 +48,8 @@ module.exports = (ctx, next) => {
         };
 
         try {
-            if (ctx.photo) {
-                const photo = await ctx.downloadPhoto();
+            if (message.photo) {
+                const photo = await this.downloadPhoto!();
                 const telegraphUrl = await uploadPhoto(photo);
 
                 commentOptions.type = `photo`;
@@ -66,9 +70,12 @@ module.exports = (ctx, next) => {
                 options.reply_markup = { inline_keyboard: [] };
             }
 
+            // TODO:
+            // @ts-ignore
             options.reply_markup.inline_keyboard.push([
                 {
                     text: `View Comments`,
+                    // @ts-ignore telegram-typings is outdated
                     login_url: {
                         url: comment.result.link,
                         forward_text: `View Comments`,

@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "noEmit": true,
+        "strict": true,
+        "target": "ES2019",
+        "esModuleInterop": true
+    }
+}

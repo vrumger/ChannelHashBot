@@ -1,4 +1,6 @@
-const { Composer } = require(`telegraf`);
+import { Composer } from 'telegraf';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import { TBot, Database } from '../typings';
 
 const start = `Hi, I was made to help you keep track of hashtags that are sent to your group by sending them to a channel. To learn my commands, send /help and for a step-by-step guide on how to set me up, send /setup.`;
 
@@ -21,11 +23,11 @@ const setup = `
 4. (Optional) send <code>/settings</code> to configure me
 `;
 
-const extra = {
-    parse_mode: `html`,
+const extra: ExtraReplyMessage = {
+    parse_mode: `HTML`,
 };
 
-module.exports = bot => {
+export default (bot: TBot, db: Database) => {
     bot.start(Composer.privateChat(Composer.reply(start)));
     bot.help(Composer.privateChat(Composer.reply(help, extra)));
     bot.command(`setup`, Composer.privateChat(Composer.reply(setup, extra)));
