@@ -11,19 +11,19 @@ const bot = new Telegraf(process.env.BOT_TOKEN as string);
 
 const db = {
     channels: new NeDB({
-        filename: path.join(__dirname, `stores/channels.db`),
+        filename: path.join(__dirname, `../stores/channels.db`),
         autoload: true,
     }),
     groups: new NeDB({
-        filename: path.join(__dirname, `stores/chats.db`),
+        filename: path.join(__dirname, `../stores/chats.db`),
         autoload: true,
     }),
     messages: new NeDB({
-        filename: path.join(__dirname, `stores/messages.db`),
+        filename: path.join(__dirname, `../stores/messages.db`),
         autoload: true,
     }),
     likes: new NeDB({
-        filename: path.join(__dirname, `stores/likes.db`),
+        filename: path.join(__dirname, `../stores/likes.db`),
         autoload: true,
     }),
 };

@@ -1,3 +1,4 @@
-node_modules/
-stores/
 .env
+/build/
+/node_modules/
+/stores/

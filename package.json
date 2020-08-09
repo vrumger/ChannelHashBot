@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node index.ts",
+    "start": "node build/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
     "lint": "eslint ."
   },
   "author": "YouTwitFace <contact@lungers.com>",
