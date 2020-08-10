@@ -1,17 +1,27 @@
-export const actionMap = new Map([
-    [`+`, `👍`],
-    [`-`, `👎`],
-]);
+import { InlineKeyboardButton } from 'telegraf/typings/markup';
 
-export default (plus: number, minus: number) => {
+export const actionMap = {
+    '+': '👍',
+    '-': '👎',
+};
+
+export default (plus: number, minus: number): InlineKeyboardButton[] => {
     return [
         {
-            text: plus === 0 && minus === 0 ? actionMap.get(`+`) : `${actionMap.get(`+`)} (${plus})`,
-            callback_data: `+1`,
+            text:
+                plus === 0 && minus === 0
+                    ? actionMap['+']
+                    : `${actionMap['+']} (${plus})`,
+            callback_data: '+1',
+            hide: false,
         },
         {
-            text: plus === 0 && minus === 0 ? actionMap.get(`-`) : `${actionMap.get(`-`)} (${minus})`,
-            callback_data: `-1`,
+            text:
+                plus === 0 && minus === 0
+                    ? actionMap['-']
+                    : `${actionMap['-']} (${minus})`,
+            callback_data: '-1',
+            hide: false,
         },
     ];
 };

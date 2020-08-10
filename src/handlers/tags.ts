@@ -1,12 +1,12 @@
-// @ts-ignore
-import escapeHtml from '@youtwitface/escape-html';
+import { Database, TBot } from '../typings';
+import { Channel } from '../typings/db';
 import { Chat as TChat } from 'telegraf/typings/telegram-types';
 import adminMiddleware from '../middleware/admin';
-import { TBot, Database } from '../typings';
-import { Channel } from '../typings/db';
+import escapeHtml from '@youtwitface/escape-html';
 
-export default (bot: TBot, db: Database) => {
-    const formatLink = (username: string, name: string) => `<a href="https://t.me/${username}">${name}</a>`;
+export default (bot: TBot, db: Database): void => {
+    const formatLink = (username: string, name: string) =>
+        `<a href="https://t.me/${username}">${name}</a>`;
 
     const formatChannelTitle = (channel: Channel) => {
         const title = escapeHtml(channel.title);
@@ -14,7 +14,9 @@ export default (bot: TBot, db: Database) => {
     };
 
     const formatUserName = (user: TChat) => {
-        const name = escapeHtml(`${user.first_name} ${user.last_name || ``}`.trim());
+        const name = escapeHtml(
+            `${user.first_name} ${user.last_name || ''}`.trim(),
+        );
         return user.username ? formatLink(user.username, name) : name;
     };
 
@@ -22,7 +24,9 @@ export default (bot: TBot, db: Database) => {
         return new Promise((resolve, reject) => {
             if (chat_id >= 0) {
                 // TODO: cache names
-                return bot.telegram.getChat(chat_id).then(user => resolve(formatUserName(user)));
+                return bot.telegram
+                    .getChat(chat_id)
+                    .then(user => resolve(formatUserName(user)));
             }
 
             db.channels.findOne({ chat_id }, (err, channel) => {
@@ -32,15 +36,15 @@ export default (bot: TBot, db: Database) => {
         });
     };
 
-    bot.command(`tags`, adminMiddleware(), ctx => {
-        if (!ctx.chat!.type.includes(`group`)) return;
+    bot.command('tags', adminMiddleware(), ctx => {
+        if (!ctx.chat!.type.includes('group')) return;
 
         const { id: chat_id } = ctx.chat!;
 
         db.groups.findOne({ chat_id }, async (err, chat) => {
             if (err) {
                 console.error(err);
-                ctx.reply(`There was an error.`);
+                ctx.reply('There was an error.');
                 return;
             }
 
@@ -50,34 +54,43 @@ export default (bot: TBot, db: Database) => {
                 chat.tags = {};
             }
 
-            const channels = Object.entries(chat.tags || {}).reduce((result, [_tag, channels]) => {
-                const tag = escapeHtml(`#${_tag}`);
-                channels = Array.isArray(channels) ? channels : [channels];
+            const channels = Object.entries(chat.tags || {}).reduce(
+                (result, [_tag, channels]) => {
+                    const tag = escapeHtml(`#${_tag}`);
+                    channels = Array.isArray(channels) ? channels : [channels];
 
-                channels.forEach(channel => {
-                    if (channel in result) {
-                        result[channel].push(tag);
-                    } else {
-                        result[channel] = [tag];
-                    }
-                });
+                    channels.forEach(channel => {
+                        if (channel in result) {
+                            result[channel].push(tag);
+                        } else {
+                            result[channel] = [tag];
+                        }
+                    });
 
-                return result;
-            }, {} as { [k: string]: string[] });
+                    return result;
+                },
+                {} as { [k: string]: string[] },
+            );
 
-            const titles = await Object.keys(channels).reduce(async (promise, channel) => {
-                const titles = await promise;
-                titles[channel] = await getChannelTitle(Number(channel));
-                return titles;
-            }, Promise.resolve({} as { [k: string]: string }));
+            const titles = await Object.keys(channels).reduce(
+                async (promise, channel) => {
+                    const titles = await promise;
+                    titles[channel] = await getChannelTitle(Number(channel));
+                    return titles;
+                },
+                Promise.resolve({} as { [k: string]: string }),
+            );
 
             const message =
                 Object.entries(channels)
-                    .map(([channel, tags]) => `» ${tags.join(`, `)} → ${titles[channel]}`)
-                    .join(`\n`) || `No tags in this chat.`;
+                    .map(
+                        ([channel, tags]) =>
+                            `» ${tags.join(', ')} → ${titles[channel]}`,
+                    )
+                    .join('\n') || 'No tags in this chat.';
 
             ctx.reply(message, {
-                parse_mode: `HTML`,
+                parse_mode: 'HTML',
                 disable_web_page_preview: true,
             });
         });

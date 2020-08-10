@@ -1,16 +1,16 @@
-import { TBot, Database } from '../typings';
+import { Database, TBot } from '../typings';
 
-import help from './help';
 import channelPost from './channelPost';
+import hashtag from './hashtag';
+import help from './help';
+import likes from './likes';
 import newMember from './newMember';
 import settings from './settings';
-import watch from './watch';
-import unwatch from './unwatch';
 import tags from './tags';
-import hashtag from './hashtag';
-import likes from './likes';
+import unwatch from './unwatch';
+import watch from './watch';
 
-export default (bot: TBot, db: Database) => {
+export default (bot: TBot, db: Database): void => {
     help(bot, db);
     channelPost(bot, db);
     newMember(bot, db);

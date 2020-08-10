@@ -1,7 +1,7 @@
+import { Channel, Chat, Like, Message } from './db';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import Telegraf from 'telegraf';
 import { TelegrafContext } from 'telegraf/typings/context';
-import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
-import { Channel, Chat, Message, Like } from './db';
 
 export interface Database {
     channels: Nedb<Channel>;
@@ -15,8 +15,8 @@ export type TBot = Telegraf<TContext>;
 export interface TContext extends TelegrafContext {
     handleError?: (error: Error) => boolean;
     isAdmin?: (chatId: number, fromId: number) => Promise<boolean>;
-    downloadPhoto?: () => any;
-    createComment?: (text: string, options: ExtraReplyMessage) => any;
+    downloadPhoto?: () => Promise<Buffer>;
+    createComment?: (text: string, options: ExtraReplyMessage) => void;
 }
 
 export type TNext = () => Promise<void>;

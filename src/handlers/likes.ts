@@ -1,13 +1,15 @@
 import { Database, TBot, TContext, TNext } from '../typings';
-import formatLikeKeyboard, { actionMap } from '../middleware/formatLikeKeyboard';
-import countLikesFunc from '../middleware/countLikes';
+import formatLikeKeyboard, {
+    actionMap,
+} from '../middleware/formatLikeKeyboard';
 import { Like } from '../typings/db';
+import countLikesFunc from '../middleware/countLikes';
 
 const errorMiddleware = (ctx: TContext, next: TNext) => {
     ctx.handleError = err => {
         if (err) {
             console.log(err);
-            ctx.answerCbQuery(`🚫 There was an error.`);
+            ctx.answerCbQuery('🚫 There was an error.');
             return true;
         }
 
@@ -17,7 +19,7 @@ const errorMiddleware = (ctx: TContext, next: TNext) => {
     next();
 };
 
-export default (bot: TBot, db: Database) => {
+export default (bot: TBot, db: Database): void => {
     const countLikes = countLikesFunc(db);
 
     bot.action(/^(\+|-)1$/, errorMiddleware, ctx => {
@@ -25,6 +27,7 @@ export default (bot: TBot, db: Database) => {
         const { message } = ctx.callbackQuery!;
         if (!message) return;
 
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore telegram-typings is outdated
         const { message_id, chat, reply_markup } = message;
         const { id: chat_id } = chat;
@@ -36,19 +39,22 @@ export default (bot: TBot, db: Database) => {
             if (ctx.handleError!(err)) return;
 
             if (!like) {
-                db.likes.insert({ ...query, action: action as Like['action'] }, () => {
-                    if (ctx.handleError!(err)) return;
-                    ctx.answerCbQuery(`You ${actionMap.get(action)} this.`);
-                });
+                db.likes.insert(
+                    { ...query, action: action as Like['action'] },
+                    () => {
+                        if (ctx.handleError!(err)) return;
+                        ctx.answerCbQuery(`You ${actionMap[action]} this.`);
+                    },
+                );
             } else if (like.action === action) {
                 db.likes.remove(query, {}, err => {
                     if (ctx.handleError!(err)) return;
-                    ctx.answerCbQuery(`You took your reaction back.`);
+                    ctx.answerCbQuery('You took your reaction back.');
                 });
             } else {
                 db.likes.update(query, { $set: { action } }, {}, err => {
                     if (ctx.handleError!(err)) return;
-                    ctx.answerCbQuery(`You ${actionMap.get(action)} this.`);
+                    ctx.answerCbQuery(`You ${actionMap[action]} this.`);
                 });
             }
 
@@ -56,7 +62,10 @@ export default (bot: TBot, db: Database) => {
                 const [plus, minus] = await countLikes(chat_id, message_id);
 
                 ctx.editMessageReplyMarkup({
-                    inline_keyboard: [formatLikeKeyboard(plus, minus), ...inlineKeyboard.slice(1)],
+                    inline_keyboard: [
+                        formatLikeKeyboard(plus, minus),
+                        ...inlineKeyboard.slice(1),
+                    ],
                 });
             } catch (err) {
                 ctx.handleError!(err);

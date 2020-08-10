@@ -1,18 +1,18 @@
-import request from 'request-promise';
 import { TContext, TNext } from '../typings';
 import { InlineKeyboardMarkup } from 'telegraf/typings/telegram-types';
+import request from 'request-promise';
 
-const uploadPhoto = async (photo: any) => {
+const uploadPhoto = async (photo: Buffer) => {
     const uploadedPhoto = await request.post({
-        method: `POST`,
-        uri: `https://telegra.ph/upload`,
+        method: 'POST',
+        uri: 'https://telegra.ph/upload',
         json: true,
         formData: {
             file: {
-                value: Buffer.from(photo, `base64`),
+                value: photo,
                 options: {
-                    filename: `image.jpg`,
-                    contentType: `image/jpeg`,
+                    filename: 'image.jpg',
+                    contentType: 'image/jpeg',
                 },
             },
         },
@@ -21,7 +21,7 @@ const uploadPhoto = async (photo: any) => {
     return `https://telegra.ph${uploadedPhoto[0].src}`;
 };
 
-export default (ctx: TContext, next: TNext) => {
+export default (ctx: TContext, next: TNext): void => {
     ctx.downloadPhoto = async function () {
         const message = (this.message || this.editedMessage)!;
         const photos = [...message.photo!];
@@ -38,13 +38,13 @@ export default (ctx: TContext, next: TNext) => {
         const message = (this.message || this.editedMessage)!;
 
         let comment;
-        const commentOptions: { [k: string]: any } = {
+        const commentOptions: { [k: string]: string | number } = {
             api_key: process.env.COMMENTS_API_KEY as string,
             owner_id: 234480941,
-            type: `text`,
+            type: 'text',
             caption: text,
             text: text,
-            parse_mode: `html`,
+            parse_mode: 'html',
         };
 
         try {
@@ -52,17 +52,17 @@ export default (ctx: TContext, next: TNext) => {
                 const photo = await this.downloadPhoto!();
                 const telegraphUrl = await uploadPhoto(photo);
 
-                commentOptions.type = `photo`;
+                commentOptions.type = 'photo';
                 commentOptions.photo_url = telegraphUrl;
             }
 
             comment = await request({
-                url: `https://api.comments.bot/createPost`,
+                url: 'https://api.comments.bot/createPost',
                 json: true,
                 body: commentOptions,
             });
         } catch (_) {
-            // Ignore errors
+            // Ignore error
         }
 
         if (comment) {
@@ -71,18 +71,20 @@ export default (ctx: TContext, next: TNext) => {
             }
 
             // TODO:
-            // @ts-ignore
-            options.reply_markup.inline_keyboard.push([
-                {
-                    text: `View Comments`,
-                    // @ts-ignore telegram-typings is outdated
-                    login_url: {
-                        url: comment.result.link,
-                        forward_text: `View Comments`,
-                        bot_username: `CommentsBot`,
+            (options.reply_markup as InlineKeyboardMarkup).inline_keyboard.push(
+                [
+                    {
+                        text: 'View Comments',
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore telegram-typings is outdated
+                        login_url: {
+                            url: comment.result.link,
+                            forward_text: 'View Comments',
+                            bot_username: 'CommentsBot',
+                        },
                     },
-                },
-            ]);
+                ],
+            );
         }
     };
 
