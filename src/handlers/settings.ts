@@ -1,6 +1,7 @@
-import { Chat, ChatSettings } from '../typings/db';
-import { Database, TBot } from '../typings';
+import { GroupSettings, Group as IGroup } from '../typings/db';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import Group from '../models/group';
+import { TBot } from '../typings';
 import adminMiddleware from '../middleware/admin';
 import escapeHtml from '@youtwitface/escape-html';
 
@@ -9,7 +10,7 @@ const messageErrors = [
     'Forbidden: bot was blocked by the user',
 ];
 
-export default (bot: TBot, db: Database): void => {
+export default (bot: TBot): void => {
     const button = (
         text: string,
         chatId: number,
@@ -22,7 +23,7 @@ export default (bot: TBot, db: Database): void => {
         },
     ];
 
-    const generateMarkup = (chat: Chat) => {
+    const generateMarkup = (chat: IGroup) => {
         const forwards = chat.settings!.forwards !== false; // Default true
         const link = chat.settings!.link === true; // Default false
         const comments = chat.settings!.comments === true; // Default false
@@ -38,54 +39,53 @@ export default (bot: TBot, db: Database): void => {
         };
     };
 
-    bot.command('settings', adminMiddleware(), ctx => {
+    bot.command('settings', adminMiddleware(), async ctx => {
         if (!ctx.chat!.type.includes('group')) return;
 
         const { id: chat_id } = ctx.chat!;
 
-        db.groups.findOne({ chat_id }, async (err, chat) => {
-            if (err) {
+        let chat: IGroup | null;
+        try {
+            chat = await Group.findOne({ chat_id });
+        } catch (err) {
+            console.error(err);
+            ctx.reply('There was an error.');
+            return;
+        }
+
+        if (!chat) {
+            chat = new Group({ chat_id, settings: {} });
+        } else if (!chat.settings) {
+            chat.settings = {};
+        }
+
+        const chatTitle = escapeHtml(ctx.chat!.title!);
+        const chatLink = ctx.chat!.username
+            ? `<a href="https://t.me/${ctx.chat!.username}">${chatTitle}</a>`
+            : chatTitle;
+        const message = `Use the buttons below to configure ${ctx.me}'s behavior for ${chatLink}.`;
+        const messageOptions: ExtraReplyMessage = {
+            reply_markup: generateMarkup(chat),
+            disable_web_page_preview: true,
+            parse_mode: 'HTML',
+        };
+
+        try {
+            await ctx.telegram.sendMessage(
+                ctx.from!.id,
+                message,
+                messageOptions,
+            );
+            ctx.deleteMessage().catch(() => {
+                // Ignore error
+            });
+        } catch (err) {
+            if (messageErrors.includes(err.description)) {
+                ctx.reply(message, messageOptions);
+            } else {
                 console.error(err);
-                ctx.reply('There was an error.');
-                return;
             }
-
-            if (!chat) {
-                chat = { chat_id, settings: {} };
-            } else if (!chat.settings) {
-                chat.settings = {};
-            }
-
-            const chatTitle = escapeHtml(ctx.chat!.title!);
-            const chatLink = ctx.chat!.username
-                ? `<a href="https://t.me/${
-                      ctx.chat!.username
-                }">${chatTitle}</a>`
-                : chatTitle;
-            const message = `Use the buttons below to configure ${ctx.me}'s behavior for ${chatLink}.`;
-            const messageOptions: ExtraReplyMessage = {
-                reply_markup: generateMarkup(chat),
-                disable_web_page_preview: true,
-                parse_mode: 'HTML',
-            };
-
-            try {
-                await ctx.telegram.sendMessage(
-                    ctx.from!.id,
-                    message,
-                    messageOptions,
-                );
-                ctx.deleteMessage().catch(() => {
-                    // Ignore error
-                });
-            } catch (err) {
-                if (messageErrors.includes(err.description)) {
-                    ctx.reply(message, messageOptions);
-                } else {
-                    console.error(err);
-                }
-            }
-        });
+        }
     });
 
     bot.action(
@@ -102,29 +102,28 @@ export default (bot: TBot, db: Database): void => {
                 return ctx.deleteMessage();
             }
 
-            db.groups.findOne({ chat_id }, (err, chat) => {
-                if (err) {
-                    console.error(err);
-                    ctx.answerCbQuery('There was an error.');
-                    return;
-                }
+            let chat: IGroup | null;
+            try {
+                chat = await Group.findOne({ chat_id });
+            } catch (err) {
+                console.error(err);
+                ctx.answerCbQuery('There was an error.');
+                return;
+            }
 
-                if (!chat) {
-                    chat = { chat_id, settings: {} };
-                } else if (!chat.settings) {
-                    chat.settings = {};
-                }
+            if (!chat) {
+                chat = new Group({ chat_id, settings: {} });
+            } else if (!chat.settings) {
+                chat.settings = {};
+            }
 
-                chat.settings![setting as keyof ChatSettings] = bool !== 'true';
+            const _settings: GroupSettings = { ...chat.settings };
+            _settings[setting as keyof GroupSettings] = bool !== 'true';
 
-                db.groups.update(
-                    { chat_id },
-                    { $set: { settings: chat.settings } },
-                    { upsert: true },
-                );
+            chat.settings = _settings;
+            await chat.save();
 
-                ctx.editMessageReplyMarkup(generateMarkup(chat));
-            });
+            ctx.editMessageReplyMarkup(generateMarkup(chat));
         },
     );
 };

@@ -1,6 +1,7 @@
-import { Database, TBot } from '../typings';
+import Channel from '../models/channel';
+import { TBot } from '../typings';
 
-export default (bot: TBot, db: Database): void => {
+export default (bot: TBot): void => {
     bot.on('channel_post', async ctx => {
         if (
             ctx.channelPost!.text?.toLowerCase() === `@${ctx.me}`.toLowerCase()
@@ -10,7 +11,7 @@ export default (bot: TBot, db: Database): void => {
                 .map(({ user: { id } }) => id)
                 .filter(id => id !== ctx.botInfo!.id);
 
-            db.channels.update(
+            await Channel.updateOne(
                 { chat_id: ctx.chat!.id },
                 { $set: { admins, title, username } },
                 { upsert: true },

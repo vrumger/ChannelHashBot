@@ -1,4 +1,5 @@
 .env
 /build/
+/nedb-to-mongodb/
 /node_modules/
 /stores/

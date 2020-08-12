@@ -1,31 +1,11 @@
-import NeDB from 'nedb';
 import Telegraf from 'telegraf';
 import addHandlers from './handlers';
 import dotenv from 'dotenv';
-import path from 'path';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN as string);
-
-const db = {
-    channels: new NeDB({
-        filename: path.join(__dirname, '../stores/channels.db'),
-        autoload: true,
-    }),
-    groups: new NeDB({
-        filename: path.join(__dirname, '../stores/chats.db'),
-        autoload: true,
-    }),
-    messages: new NeDB({
-        filename: path.join(__dirname, '../stores/messages.db'),
-        autoload: true,
-    }),
-    likes: new NeDB({
-        filename: path.join(__dirname, '../stores/likes.db'),
-        autoload: true,
-    }),
-};
 
 bot.catch(console.error);
 
@@ -33,8 +13,17 @@ bot.use((ctx, next) => {
     if (!ctx.from || ctx.from.id !== 777000) next();
 });
 
-addHandlers(bot, db);
+(async () => {
+    await mongoose.connect(process.env.MONGO_URI as string, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        useCreateIndex: true,
+    });
 
-bot.launch().then(() => {
+    console.log('Connected to MongoDB');
+
+    addHandlers(bot);
+
+    await bot.launch();
     console.log(`@${bot.options.username} is running...`);
-});
+})();

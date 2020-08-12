@@ -1,25 +1,27 @@
+import { Document } from 'mongoose';
+
 // Channels
 
-export interface Channel {
+export interface Channel extends Document {
     chat_id: number;
     admins: number[];
     title: string;
     username?: string;
 }
 
-// Chats
+// Groups
 
-export interface Chat {
+export interface Group extends Document {
     chat_id: number;
-    tags?: ChatTags;
-    settings?: ChatSettings;
+    tags?: GroupTags;
+    settings?: GroupSettings;
 }
 
-export interface ChatTags {
+export interface GroupTags {
     [key: string]: number[];
 }
 
-export interface ChatSettings {
+export interface GroupSettings {
     likes?: boolean;
     forwards?: boolean;
     link?: boolean;
@@ -28,7 +30,7 @@ export interface ChatSettings {
 
 // Messages
 
-export interface Message {
+export interface Message extends Document {
     chat_id: number;
     message_id: number;
     channel_id: number;
@@ -37,7 +39,7 @@ export interface Message {
 
 // Likes
 
-export interface Like {
+export interface Like extends Document {
     chat_id: number;
     from_id: number;
     message_id: number;

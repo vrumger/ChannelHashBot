@@ -1,6 +1,6 @@
-import { Database, TBot } from '../typings';
 import { Composer } from 'telegraf';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import { TBot } from '../typings';
 
 const start =
     'Hi, I was made to help you keep track of hashtags that are sent to your group by sending them to a channel. ' +
@@ -29,7 +29,7 @@ const extra: ExtraReplyMessage = {
     parse_mode: 'HTML',
 };
 
-export default (bot: TBot, db: Database): void => {
+export default (bot: TBot): void => {
     bot.start(Composer.privateChat(Composer.reply(start)));
     bot.help(Composer.privateChat(Composer.reply(help, extra)));
     bot.command('setup', Composer.privateChat(Composer.reply(setup, extra)));

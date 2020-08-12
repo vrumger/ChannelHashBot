@@ -1,9 +1,10 @@
-import { Database, TBot, TContext, TNext } from '../typings';
+import { TBot, TContext, TNext } from '../typings';
 import formatLikeKeyboard, {
     actionMap,
 } from '../middleware/formatLikeKeyboard';
-import { Like } from '../typings/db';
-import countLikesFunc from '../middleware/countLikes';
+import { Like as ILike } from '../typings/db';
+import Like from '../models/like';
+import countLikes from '../middleware/countLikes';
 
 const errorMiddleware = (ctx: TContext, next: TNext) => {
     ctx.handleError = err => {
@@ -19,11 +20,9 @@ const errorMiddleware = (ctx: TContext, next: TNext) => {
     next();
 };
 
-export default (bot: TBot, db: Database): void => {
-    const countLikes = countLikesFunc(db);
-
-    bot.action(/^(\+|-)1$/, errorMiddleware, ctx => {
-        const action = ctx.match![1] as Like['action'];
+export default (bot: TBot): void => {
+    bot.action(/^(\+|-)1$/, errorMiddleware, async ctx => {
+        const action = ctx.match![1] as ILike['action'];
         const { message } = ctx.callbackQuery!;
         if (!message) return;
 
@@ -35,41 +34,41 @@ export default (bot: TBot, db: Database): void => {
 
         const query = { chat_id, message_id, from_id: ctx.from!.id };
 
-        db.likes.findOne(query, async (err, like) => {
-            if (ctx.handleError!(err)) return;
+        let like: ILike | null;
+        try {
+            like = await Like.findOne(query);
+        } catch (err) {
+            ctx.handleError!(err);
+            return;
+        }
 
-            if (!like) {
-                db.likes.insert(
-                    { ...query, action: action as Like['action'] },
-                    () => {
-                        if (ctx.handleError!(err)) return;
-                        ctx.answerCbQuery(`You ${actionMap[action]} this.`);
-                    },
-                );
-            } else if (like.action === action) {
-                db.likes.remove(query, {}, err => {
-                    if (ctx.handleError!(err)) return;
-                    ctx.answerCbQuery('You took your reaction back.');
-                });
-            } else {
-                db.likes.update(query, { $set: { action } }, {}, err => {
-                    if (ctx.handleError!(err)) return;
-                    ctx.answerCbQuery(`You ${actionMap[action]} this.`);
-                });
-            }
+        if (!like) {
+            await new Like({
+                ...query,
+                action: action as ILike['action'],
+            }).save();
 
-            try {
-                const [plus, minus] = await countLikes(chat_id, message_id);
+            ctx.answerCbQuery(`You ${actionMap[action]} this.`);
+        } else if (like.action === action) {
+            await like.deleteOne();
+            ctx.answerCbQuery('You took your reaction back.');
+        } else {
+            like.action = action;
+            await like.save();
+            ctx.answerCbQuery(`You ${actionMap[action]} this.`);
+        }
 
-                ctx.editMessageReplyMarkup({
-                    inline_keyboard: [
-                        formatLikeKeyboard(plus, minus),
-                        ...inlineKeyboard.slice(1),
-                    ],
-                });
-            } catch (err) {
-                ctx.handleError!(err);
-            }
-        });
+        try {
+            const [plus, minus] = await countLikes(chat_id, message_id);
+
+            ctx.editMessageReplyMarkup({
+                inline_keyboard: [
+                    formatLikeKeyboard(plus, minus),
+                    ...inlineKeyboard.slice(1),
+                ],
+            });
+        } catch (err) {
+            ctx.handleError!(err);
+        }
     });
 };

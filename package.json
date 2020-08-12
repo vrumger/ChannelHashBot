@@ -7,21 +7,22 @@
     "start": "node build/index.js",
     "dev": "ts-node src/index.ts",
     "build": "tsc",
+    "test": "tsc --noEmit",
     "lint": "eslint src/"
   },
   "author": "YouTwitFace <contact@lungers.com>",
   "license": "MIT",
   "dependencies": {
+    "@types/mongoose": "^5.7.36",
     "@youtwitface/escape-html": "^1.0.0",
     "@youtwitface/text-to-html": "^1.1.3",
     "dotenv": "^8.2.0",
-    "nedb": "^1.8.0",
+    "mongoose": "^5.9.28",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "telegraf": "^3.38.0"
   },
   "devDependencies": {
-    "@types/nedb": "^1.8.9",
     "@types/node": "^14.0.13",
     "@types/request-promise": "^4.1.46",
     "@typescript-eslint/eslint-plugin": "^3.8.0",

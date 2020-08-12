@@ -1,4 +1,4 @@
-import { Database, TBot } from '../typings';
+import { TBot } from '../typings';
 
 import channelPost from './channelPost';
 import hashtag from './hashtag';
@@ -10,14 +10,14 @@ import tags from './tags';
 import unwatch from './unwatch';
 import watch from './watch';
 
-export default (bot: TBot, db: Database): void => {
-    help(bot, db);
-    channelPost(bot, db);
-    newMember(bot, db);
-    settings(bot, db);
-    watch(bot, db);
-    unwatch(bot, db);
-    tags(bot, db);
-    hashtag(bot, db);
-    likes(bot, db);
+export default (bot: TBot): void => {
+    help(bot);
+    channelPost(bot);
+    newMember(bot);
+    settings(bot);
+    watch(bot);
+    unwatch(bot);
+    tags(bot);
+    hashtag(bot);
+    likes(bot);
 };

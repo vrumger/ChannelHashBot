@@ -1,9 +1,11 @@
-import { Channel, ChatTags } from '../typings/db';
-import { Database, TBot } from '../typings';
+import { GroupTags, Channel as IChannel, Group as IGroup } from '../typings/db';
+import Channel from '../models/channel';
+import Group from '../models/group';
+import { TBot } from '../typings';
 import adminMiddleware from '../middleware/admin';
 
-export default (bot: TBot, db: Database): void => {
-    bot.command('watch', adminMiddleware(), ctx => {
+export default (bot: TBot): void => {
+    bot.command('watch', adminMiddleware(), async ctx => {
         if (!ctx.chat!.type.includes('group')) return;
 
         const { message_id, text, entities } = ctx.message!;
@@ -15,53 +17,53 @@ export default (bot: TBot, db: Database): void => {
             )
             .join(', ');
 
-        db.channels.find(
-            { admins: { $elemMatch: ctx.from!.id } },
-            (err: Error, channels: Channel[]) => {
-                if (err) {
-                    console.error(err);
-                    ctx.reply('There was an error.');
-                    return;
-                }
+        let channels: IChannel[] | null;
+        try {
+            channels = await Channel.find({
+                admins: { $elemMatch: { $eq: ctx.from!.id } },
+            });
+        } catch (err) {
+            console.error(err);
+            ctx.reply('There was an error.');
+            return;
+        }
 
-                if (channels.length === 0) {
-                    return ctx.reply('You need to add a channel first.');
-                }
+        if (channels.length === 0) {
+            return ctx.reply('You need to add a channel first.');
+        }
 
-                ctx.reply(`Choose a chat for the following tags:\n${tags}`, {
-                    reply_to_message_id: message_id,
-                    reply_markup: {
-                        inline_keyboard: [
-                            ...channels.map(channel => [
-                                {
-                                    text: channel.title,
-                                    callback_data: `${ctx.from!.id}:${
-                                        ctx.chat!.id
-                                    }:${channel.chat_id}`,
-                                },
-                            ]),
-                            [
-                                {
-                                    text: 'My Private Messages 🗨',
-                                    callback_data: `${ctx.from!.id}:${
-                                        ctx.chat!.id
-                                    }:${ctx.from!.id}`,
-                                },
-                            ],
-                            [
-                                {
-                                    text: 'Done 👍',
-                                    callback_data: `${ctx.from!.id}:done`,
-                                },
-                            ],
-                        ],
-                    },
-                });
+        ctx.reply(`Choose a chat for the following tags:\n${tags}`, {
+            reply_to_message_id: message_id,
+            reply_markup: {
+                inline_keyboard: [
+                    ...channels.map(channel => [
+                        {
+                            text: channel.title,
+                            callback_data: `${ctx.from!.id}:${ctx.chat!.id}:${
+                                channel.chat_id
+                            }`,
+                        },
+                    ]),
+                    [
+                        {
+                            text: 'My Private Messages 🗨',
+                            callback_data: `${ctx.from!.id}:${ctx.chat!.id}:${
+                                ctx.from!.id
+                            }`,
+                        },
+                    ],
+                    [
+                        {
+                            text: 'Done 👍',
+                            callback_data: `${ctx.from!.id}:done`,
+                        },
+                    ],
+                ],
             },
-        );
+        });
     });
 
-    bot.action(/^(\d+):(-\d+):(-?\d+)$/, ctx => {
+    bot.action(/^(\d+):(-\d+):(-?\d+)$/, async ctx => {
         const from = Number(ctx.match![1]);
         const group = Number(ctx.match![2]);
         const channel = Number(ctx.match![3]);
@@ -77,20 +79,23 @@ export default (bot: TBot, db: Database): void => {
                 text!.slice(entity.offset + 1, entity.offset + entity.length),
             );
 
-        db.groups.findOne({ chat_id: group }, (err, chat) => {
-            if (err) {
-                console.log(err);
-                ctx.answerCbQuery('🚫');
-                return;
-            }
+        let chat: IGroup | null;
+        try {
+            chat = await Group.findOne({ chat_id: group });
+        } catch (err) {
+            console.log(err);
+            ctx.answerCbQuery('🚫');
+            return;
+        }
 
-            if (!chat) {
-                chat = { chat_id: group, tags: {} };
-            } else if (!chat.tags) {
-                chat.tags = {};
-            }
+        if (!chat) {
+            chat = new Group({ chat_id: group, tags: {} });
+        } else if (!chat.tags) {
+            chat.tags = {};
+        }
 
-            const tagsObject = hashtags.reduce((tags: ChatTags, hashtag) => {
+        const tagsObject = hashtags.reduce(
+            (tags: GroupTags, hashtag) => {
                 if (!tags[hashtag]) {
                     tags[hashtag] = [];
                 } else if (!Array.isArray(tags[hashtag])) {
@@ -103,16 +108,14 @@ export default (bot: TBot, db: Database): void => {
                 // Append and filter duplicates
                 tags[hashtag] = [...new Set(tags[hashtag].concat(channel))];
                 return tags;
-            }, chat.tags!);
+            },
+            { ...chat.tags },
+        );
 
-            db.groups.update(
-                { chat_id: group },
-                { $set: { tags: tagsObject } },
-                { upsert: true },
-            );
+        chat.tags = tagsObject;
+        await chat.save();
 
-            ctx.answerCbQuery('👍');
-        });
+        ctx.answerCbQuery('👍');
     });
 
     bot.action(/^(\d+):done$/, ctx => {

@@ -1,8 +1,6 @@
 // TODO: cleanup
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-import { Chat, Message } from '../typings/db';
-import { Database, TBot, TContext } from '../typings';
 import {
     ExtraAudio,
     ExtraDocument,
@@ -12,14 +10,16 @@ import {
     MessageEntity,
     Message as TMessage,
 } from 'telegraf/typings/telegram-types';
+import { Group as IGroup, Message as IMessage } from '../typings/db';
+import { TBot, TContext } from '../typings';
+import Group from '../models/group';
+import Message from '../models/message';
 import commentMiddleware from '../middleware/createComment';
-import countLikesFunc from '../middleware/countLikes';
+import countLikes from '../middleware/countLikes';
 import formatLikeKeyboard from '../middleware/formatLikeKeyboard';
 import textToHtml from '@youtwitface/text-to-html';
 
-export default (bot: TBot, db: Database): void => {
-    const countLikes = countLikesFunc(db);
-
+export default (bot: TBot): void => {
     const getReplyMarkup = ({
         chat,
         directLink,
@@ -27,7 +27,7 @@ export default (bot: TBot, db: Database): void => {
         plus = 0,
         minus = 0,
     }: {
-        chat: Chat;
+        chat: IGroup;
         directLink: string;
         message_id: number;
         plus?: number;
@@ -59,7 +59,7 @@ export default (bot: TBot, db: Database): void => {
         const message = (ctx.message || ctx.editedMessage)!;
         const { forward_date, reply_to_message: reply } = message;
 
-        // Use `forward_date` becuase it's always there for every type of forward
+        // Use `forward_date` because it's always there for every type of forward
         if (forward_date) return;
 
         let entities = message.entities || message.caption_entities || [];
@@ -101,7 +101,7 @@ export default (bot: TBot, db: Database): void => {
 
     const sendMessage = async (
         ctx: TContext,
-        chat: Chat,
+        chat: IGroup,
         channel: number,
         message: TMessage,
         text: string,
@@ -178,7 +178,7 @@ export default (bot: TBot, db: Database): void => {
         return sentMessage;
     };
 
-    const handler = (ctx: TContext) => {
+    const handler = async (ctx: TContext) => {
         if (!ctx.chat!.type.includes('group')) return;
 
         const _message = getMessage(ctx);
@@ -186,185 +186,193 @@ export default (bot: TBot, db: Database): void => {
 
         const { message, text, entities, tags } = _message;
 
-        db.groups.findOne({ chat_id: ctx.chat!.id }, async (err, chat) => {
-            if (err) return console.error(err);
-            if (!chat || !chat.tags) return;
+        let chat: IGroup | null;
+        try {
+            chat = await Group.findOne({ chat_id: ctx.chat!.id });
+        } catch (err) {
+            console.error(err);
+            return;
+        }
 
-            const sentChannels: number[] = [];
+        if (!chat || !chat.tags) return;
 
-            for (const tag of tags) {
-                if (!chat.tags[tag]) {
+        const sentChannels: number[] = [];
+
+        for (const tag of tags) {
+            if (!chat.tags[tag]) {
+                continue;
+            }
+
+            // Convert to array for backwards compatibility
+            if (!Array.isArray(chat.tags[tag])) {
+                // @ts-ignore
+                chat.tags[tag] = [chat.tags[tag]];
+            }
+
+            for (const channel of chat.tags[tag]) {
+                if (sentChannels.includes(channel)) {
                     continue;
                 }
 
-                // Convert to array for backwards compatibility
-                if (!Array.isArray(chat.tags[tag])) {
-                    // @ts-ignore
-                    chat.tags[tag] = [chat.tags[tag]];
-                }
+                const sentMessage = await sendMessage(
+                    ctx,
+                    chat,
+                    channel,
+                    message,
+                    text,
+                    entities,
+                );
 
-                for (const channel of chat.tags[tag]) {
-                    if (sentChannels.includes(channel)) {
-                        continue;
-                    }
-
-                    const sentMessage = await sendMessage(
-                        ctx,
-                        chat,
-                        channel,
-                        message,
-                        text,
-                        entities,
-                    );
-
-                    sentChannels.push(channel);
-                    db.messages.insert({
-                        chat_id: ctx.chat!.id,
-                        message_id: message.message_id,
-                        channel_id: channel,
-                        channel_message_id: sentMessage.message_id,
-                    });
-                }
+                sentChannels.push(channel);
+                await new Message({
+                    chat_id: ctx.chat!.id,
+                    message_id: message.message_id,
+                    channel_id: channel,
+                    channel_message_id: sentMessage.message_id,
+                }).save();
             }
-        });
+        }
     };
 
     // @ts-ignore telegraf's types is missing Composer.entity
     bot.entity('hashtag', commentMiddleware, handler);
 
-    bot.on('edited_message', (ctx, next) => {
+    bot.on('edited_message', async (ctx, next) => {
         if (!ctx.chat!.type.includes('group')) return;
 
         const editedMessage = ctx.editedMessage!;
         const { message, text, entities } = getMessage(ctx)!;
         const { id: chat_id } = editedMessage.chat;
 
-        db.messages.find(
-            { chat_id, message_id: message.message_id },
-            (err: Error, channelMessages: Message[]) => {
-                if (err) return console.error(err);
+        let channelMessages: IMessage[] | null;
+        try {
+            channelMessages = await Message.find({
+                chat_id,
+                message_id: message.message_id,
+            });
+        } catch (err) {
+            console.error(err);
+            return;
+        }
 
-                if (!channelMessages.length) {
-                    const entities =
-                        editedMessage.entities ||
-                        editedMessage.caption_entities ||
-                        [];
+        if (!channelMessages.length) {
+            const entities =
+                editedMessage.entities || editedMessage.caption_entities || [];
 
-                    if (entities.some(entity => entity.type === 'hashtag')) {
-                        commentMiddleware(ctx, next);
-                        handler(ctx);
-                    }
+            if (entities.some(entity => entity.type === 'hashtag')) {
+                commentMiddleware(ctx, next);
+                await handler(ctx);
+            }
 
-                    return;
+            return;
+        }
+
+        let chat: IGroup | null;
+        try {
+            chat = await Group.findOne({ chat_id });
+        } catch (err) {
+            console.error(err);
+            return;
+        }
+
+        if (!chat) {
+            return;
+        }
+
+        for (const channelMessage of channelMessages) {
+            // Use `!== false` in case it's `undefined`
+            if (!chat.settings || chat.settings.forwards !== false) {
+                ctx.telegram.forwardMessage(
+                    channelMessage.channel_id,
+                    chat_id,
+                    message.message_id,
+                );
+
+                ctx.telegram
+                    .deleteMessage(
+                        channelMessage.channel_id,
+                        channelMessage.channel_message_id,
+                    )
+                    .catch(() => {
+                        // Ignore error
+                    });
+
+                continue;
+            }
+
+            const parsedMessage: string = textToHtml(text, entities);
+            const chatId = ctx.chat!.id.toString().slice(4);
+            const directLink = ctx.chat!.username || `c/${chatId}`;
+
+            const [plus, minus] = await countLikes(
+                chat_id,
+                channelMessage.channel_message_id,
+            );
+            const messageOptions = {
+                reply_markup: getReplyMarkup({
+                    chat,
+                    directLink,
+                    message_id: message.message_id,
+                    plus,
+                    minus,
+                }),
+                parse_mode: 'html',
+            };
+
+            let messagePromise: Promise<
+                TMessage | boolean | void
+            > = Promise.resolve();
+            if (
+                message.audio ||
+                message.document ||
+                message.photo ||
+                message.video
+            ) {
+                messagePromise = ctx.telegram.editMessageCaption(
+                    channelMessage.channel_id,
+                    channelMessage.channel_message_id,
+                    undefined,
+                    parsedMessage,
+                    // @ts-ignore
+                    messageOptions,
+                );
+            } else {
+                messagePromise = ctx.telegram.editMessageText(
+                    channelMessage.channel_id,
+                    channelMessage.channel_message_id,
+                    undefined,
+                    parsedMessage,
+                    // @ts-ignore
+                    messageOptions,
+                );
+            }
+
+            messagePromise.catch(async err => {
+                if (
+                    err.description === 'Bad Request: message to edit not found'
+                ) {
+                    commentMiddleware(ctx, next);
+
+                    const sentMessage = await sendMessage(
+                        ctx,
+                        // TODO: figure out why TypeScript is complaining
+                        chat!,
+                        channelMessage.channel_id,
+                        message,
+                        parsedMessage,
+                        [],
+                    );
+
+                    await new Message({
+                        chat_id: ctx.chat!.id,
+                        message_id: message.message_id,
+                        channel_id: channelMessage.channel_id,
+                        channel_message_id: sentMessage.message_id,
+                    }).save();
+                } else {
+                    console.log(err);
                 }
-
-                db.groups.findOne({ chat_id }, async (err, chat) => {
-                    if (err) return console.error(err);
-                    if (!chat) return;
-
-                    for (const channelMessage of channelMessages) {
-                        // Use `!== false` in case it's `undefined`
-                        if (
-                            !chat.settings ||
-                            chat.settings.forwards !== false
-                        ) {
-                            ctx.telegram.forwardMessage(
-                                channelMessage.channel_id,
-                                chat_id,
-                                message.message_id,
-                            );
-
-                            ctx.telegram
-                                .deleteMessage(
-                                    channelMessage.channel_id,
-                                    channelMessage.channel_message_id,
-                                )
-                                .catch(() => {
-                                    // Ignore error
-                                });
-
-                            continue;
-                        }
-
-                        const parsedMessage: string = textToHtml(
-                            text,
-                            entities,
-                        );
-                        const chatId = ctx.chat!.id.toString().slice(4);
-                        const directLink = ctx.chat!.username || `c/${chatId}`;
-
-                        const [plus, minus] = await countLikes(
-                            chat_id,
-                            channelMessage.channel_message_id,
-                        );
-                        const messageOptions = {
-                            reply_markup: getReplyMarkup({
-                                chat,
-                                directLink,
-                                message_id: message.message_id,
-                                plus,
-                                minus,
-                            }),
-                            parse_mode: 'html',
-                        };
-
-                        let messagePromise: Promise<
-                            TMessage | boolean | void
-                        > = Promise.resolve();
-                        if (
-                            message.audio ||
-                            message.document ||
-                            message.photo ||
-                            message.video
-                        ) {
-                            messagePromise = ctx.telegram.editMessageCaption(
-                                channelMessage.channel_id,
-                                channelMessage.channel_message_id,
-                                undefined,
-                                parsedMessage,
-                                // @ts-ignore
-                                messageOptions,
-                            );
-                        } else {
-                            messagePromise = ctx.telegram.editMessageText(
-                                channelMessage.channel_id,
-                                channelMessage.channel_message_id,
-                                undefined,
-                                parsedMessage,
-                                // @ts-ignore
-                                messageOptions,
-                            );
-                        }
-
-                        messagePromise.catch(async err => {
-                            if (
-                                err.description ===
-                                'Bad Request: message to edit not found'
-                            ) {
-                                commentMiddleware(ctx, next);
-
-                                const sentMessage = await sendMessage(
-                                    ctx,
-                                    chat,
-                                    channelMessage.channel_id,
-                                    message,
-                                    parsedMessage,
-                                    [],
-                                );
-
-                                db.messages.insert({
-                                    chat_id: ctx.chat!.id,
-                                    message_id: message.message_id,
-                                    channel_id: channelMessage.channel_id,
-                                    channel_message_id: sentMessage.message_id,
-                                });
-                            } else {
-                                console.log(err);
-                            }
-                        });
-                    }
-                });
-            },
-        );
+            });
+        }
     });
 };
