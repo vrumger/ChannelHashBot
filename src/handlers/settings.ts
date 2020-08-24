@@ -39,6 +39,23 @@ export default (bot: TBot): void => {
         };
     };
 
+    const updateSettings = (
+        newSetting: keyof GroupSettings,
+        settings: GroupSettings,
+    ): GroupSettings => {
+        const newSettings = { ...settings };
+
+        if (newSetting === 'forwards' && settings.forwards) {
+            newSettings.comments = false;
+            newSettings.likes = false;
+            newSettings.link = false;
+        } else {
+            newSettings.forwards = false;
+        }
+
+        return newSettings;
+    };
+
     bot.command('settings', adminMiddleware(), async ctx => {
         if (!ctx.chat!.type.includes('group')) return;
 
@@ -120,7 +137,10 @@ export default (bot: TBot): void => {
             const _settings: GroupSettings = { ...chat.settings };
             _settings[setting as keyof GroupSettings] = bool !== 'true';
 
-            chat.settings = _settings;
+            chat.settings = updateSettings(
+                setting as keyof GroupSettings,
+                _settings,
+            );
             await chat.save();
 
             ctx.editMessageReplyMarkup(generateMarkup(chat));
