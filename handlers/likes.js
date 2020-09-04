@@ -35,6 +35,7 @@ module.exports = (bot, db) => {
             if (!like) {
                 db.likes.insert({ ...query, action }, () => {
                     if (ctx.handleError(err)) return;
+                    ctx.telegram.deleteMessage(ctx.chat.id.chat_id,ctx.message.message_id);
                     ctx.answerCbQuery(`You ${actionMap.get(action)} this.`);
                 });
             } else if (like.action === action) {
