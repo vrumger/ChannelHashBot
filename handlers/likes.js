@@ -36,22 +36,26 @@ module.exports = (bot, db) => {
             if (!like) {
                 db.likes.insert({ ...query, action }, () => {
                     if (ctx.handleError(err)) return;
-                    ctx.answerCbQuery(`You ${actionMap.get(action)} this! Click again to confirm and send a PM to the user who requested.`);
+                    ctx.answerCbQuery(`You ${actionMap.get(action)} this! click again to delete this.`);
                 });
             } else if (like.action === action) {
                 db.likes.remove(query, {}, err => {
                     if (ctx.handleError(err)) return;
-                    if(actionMap.get(action) == "Fulfilled☑️")
+                    if(actionMap.get(action) == "Fulfilled ✅")
                     {
-                      ctx.telegram.sendMessage(from_id, `Your request has been fulfilled. Please find it in the main group @BookCrushGroup`);
+                      //ctx.telegram.sendMessage(-1001293118439,`Your request has been fulfilled. Please find it below this message`,query.message_id);
                       ctx.telegram.deleteMessage(query.chat_id,query.message_id);
                     }
-                    ctx.answerCbQuery(`You took your reaction back.`);
+                    //ctx.answerCbQuery(`You took your reaction back.`);
                 });
             } else {
                 db.likes.update(query, { $set: { action } }, {}, err => {
                     if (ctx.handleError(err)) return;
-                    ctx.answerCbQuery(`You ${actionMap.get(action)} this.`);
+                    if(actionMap.get(action) == "Can't find ❌")
+                    {
+                      //ctx.telegram.sendMessage(-1001293118439,`Your request has been fulfilled. Please find it below this message`,query.message_id);
+                      ctx.answerCbQuery(`You ${actionMap.get(action)} this.`);
+                    }
                 });
             }
 
