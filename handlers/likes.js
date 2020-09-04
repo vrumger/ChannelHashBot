@@ -36,8 +36,7 @@ module.exports = (bot, db) => {
             if (!like) {
                 db.likes.insert({ ...query, action }, () => {
                     if (ctx.handleError(err)) return;
-                    
-                    ctx.answerCbQuery(`You ${actionMap.get(action)} this.`);
+                    ctx.answerCbQuery(`You ${actionMap.get(action)} this! Click again to confirm and send a PM to the user who requested.`);
                 });
             } else if (like.action === action) {
                 db.likes.remove(query, {}, err => {
