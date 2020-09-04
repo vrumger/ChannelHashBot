@@ -1,4 +1,5 @@
 const formatLikeKeyboard = require(`../middleware/formatLikeKeyboard`);
+const hashtag = require(`./hashtag`)
 const { actionMap } = formatLikeKeyboard;
 
 const errorMiddleware = (ctx, next) => {
@@ -35,12 +36,17 @@ module.exports = (bot, db) => {
             if (!like) {
                 db.likes.insert({ ...query, action }, () => {
                     if (ctx.handleError(err)) return;
-                    ctx.telegram.deleteMessage(ctx.chat.id.chat_id,ctx.message.message_id);
+                    
                     ctx.answerCbQuery(`You ${actionMap.get(action)} this.`);
                 });
             } else if (like.action === action) {
                 db.likes.remove(query, {}, err => {
                     if (ctx.handleError(err)) return;
+                    if(actionMap.get(action) == "Fulfilled☑️")
+                    {
+                      ctx.telegram.sendMessage(from_id, `Your request has been fulfilled. Please find it in the main group @BookCrushGroup`);
+                      ctx.telegram.deleteMessage(query.chat_id,query.message_id);
+                    }
                     ctx.answerCbQuery(`You took your reaction back.`);
                 });
             } else {

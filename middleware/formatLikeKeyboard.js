@@ -1,6 +1,6 @@
 const actionMap = new Map([
-    [`+`, `👍`],
-    [`-`, `👎`],
+    [`+`, `Fulfilled☑️`],
+    [`-`, `Can't find❌`],
 ]);
 
 module.exports = (plus, minus) => {
