@@ -43,7 +43,9 @@ module.exports = (bot, db) => {
                     if (ctx.handleError(err)) return;
                     if(actionMap.get(action) == "Fulfilled ✅")
                     {
-                      //ctx.telegram.sendMessage(-1001293118439,`Your request has been fulfilled. Please find it below this message`,query.message_id);
+                      //ctx.telegram.sendMessage(ctx.from.id,`Your request has been fulfilled. Please visit @BookCrushGroup to find your fulfilled book.`);
+                      console.log(ctx.from.id);
+                      console.log(query.chat_id);
                       ctx.telegram.deleteMessage(query.chat_id,query.message_id);
                     }
                     //ctx.answerCbQuery(`You took your reaction back.`);

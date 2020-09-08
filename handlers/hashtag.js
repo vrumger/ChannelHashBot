@@ -67,7 +67,7 @@ module.exports = (bot, db) => {
             .trim();
 
         const messageToSend = untaggedText !== `` || !reply ? message : reply;
-        text = messageToSend.text || messageToSend.caption || ``;
+        text =  ctx.from.first_name + `:\n\n` + messageToSend.text || messageToSend.caption || ``;
         entities =
             messageToSend.entities || messageToSend.caption_entities || [];
 
