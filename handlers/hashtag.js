@@ -3,6 +3,9 @@
 const textToHtml = require(`@youtwitface/text-to-html`);
 const commentMiddleware = require(`../middleware/createComment`);
 const formatLikeKeyboard = require(`../middleware/formatLikeKeyboard`);
+const { actionMap } = formatLikeKeyboard;
+
+var sendPMID, originalRequest;
 
 module.exports = (bot, db) => {
     const countLikes = require(`../middleware/countLikes`)(db);
@@ -23,12 +26,16 @@ module.exports = (bot, db) => {
         if (chat.settings && chat.settings.link) {
             inlineKeyboard.push([
                 {
-                    text: `Go to message`,
+                    text: `Original Request`,
                     url: `https://t.me/${directLink}/${message_id}`,
+                },
+                {
+                  text: `Send PM Notif`,
+                  callback_data: `callback_query_notif`,
                 },
             ]);
         }
-
+        originalRequest = `https://t.me/${directLink}/${message_id}`;
         return {
             inline_keyboard: inlineKeyboard,
         };
@@ -36,7 +43,7 @@ module.exports = (bot, db) => {
 
     const getMessage = ctx => {
         const message = ctx.message || ctx.editedMessage;
-        const { forward_date, reply_to_message: reply } = message;
+        var { forward_date, reply_to_message: reply } = message;
 
         // Use `forward_date` becuase it's always there
         // for every type of forward
@@ -70,7 +77,26 @@ module.exports = (bot, db) => {
         text =  ctx.from.first_name + `:\n\n` + messageToSend.text || messageToSend.caption || ``;
         entities =
             messageToSend.entities || messageToSend.caption_entities || [];
+        //sendPMID = 12345678;
+        sendPMID = ctx.from.id;
+        //module.exports.sendPMID = sendPMID;
+        console.log(sendPMID + "is the id")
 
+        const countLikes = require(`../middleware/countLikes`)(db);
+        
+        const errorMiddleware = (ctx, next) => {
+    ctx.handleError = err => {
+        if (err) {
+            console.log(err);
+            ctx.answerCbQuery(`🚫 There was an error.`);
+            return true;
+        }
+    };
+
+    next();
+};
+
+        
         return {
             message: messageToSend,
             text,
@@ -78,6 +104,7 @@ module.exports = (bot, db) => {
             tags,
         };
     };
+
 
     const sendMessage = async (ctx, chat, channel, message, text, entities) => {
         // Use `!== false` in case it's `undefined`
@@ -150,9 +177,8 @@ module.exports = (bot, db) => {
 
     const handler = ctx => {
         if (!ctx.chat.type.includes(`group`)) return;
-
-        const { message, text, entities, tags } = getMessage(ctx);
-
+        
+        const { message,  text, entities, tags } = getMessage(ctx);
         db.groups.findOne({ chat_id: ctx.chat.id }, async (err, chat) => {
             if (err) return console.error(err);
             if (!chat || !chat.tags) return;
@@ -182,7 +208,6 @@ module.exports = (bot, db) => {
                         text,
                         entities,
                     );
-
                     sentChannels.push(channel);
                     db.messages.insert({
                         chat_id: ctx.chat.id,
@@ -314,4 +339,12 @@ module.exports = (bot, db) => {
             },
         );
     });
-};
+  bot.action('callback_query_notif', async ctx =>
+  {
+    const parse = 'html'
+    ctx.telegram.sendMessage(sendPMID, `<i>Your (${originalRequest})[Request] has been fulfilled. Click(right click on desktop) on your request > View Thread to download your fulfilled book.</i>`, {parse})
+    ctx.answerCbQuery(`Sent a notification to the requester!`);
+    }
+)
+
+}; 

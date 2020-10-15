@@ -1,6 +1,8 @@
 const { Composer } = require(`telegraf`);
 
-const start = `Hi, I was made to help you keep track of hashtags that are sent to your group by sending them to a channel. To learn my commands, send /help and for a step-by-step guide on how to set me up, send /setup.`;
+const start = `Hi there, Dear BookCrush member!
+You will receive notifications from me when your request is fulfilled! (make sure the bot is not stopped or blocked to be able to receive notifications)
+More features coming soon!`;
 
 const help = `
 <code>/watch [hashtags...]</code> - add hashtags to your watchlist

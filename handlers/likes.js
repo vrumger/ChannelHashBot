@@ -1,5 +1,9 @@
+
+//const sendPMID = require('./hashtag/sendPMID');
+
 const formatLikeKeyboard = require(`../middleware/formatLikeKeyboard`);
 const hashtag = require(`./hashtag`)
+//console.log(sendPMID)
 const { actionMap } = formatLikeKeyboard;
 
 const errorMiddleware = (ctx, next) => {
@@ -16,7 +20,7 @@ const errorMiddleware = (ctx, next) => {
 
 module.exports = (bot, db) => {
     const countLikes = require(`../middleware/countLikes`)(db);
-
+   
     bot.action(/^(\+|-)1$/, errorMiddleware, ctx => {
         const [, action] = ctx.match;
         const {
@@ -43,9 +47,11 @@ module.exports = (bot, db) => {
                     if (ctx.handleError(err)) return;
                     if(actionMap.get(action) == "Fulfilled ✅")
                     {
-                      //ctx.telegram.sendMessage(ctx.from.id,`Your request has been fulfilled. Please visit @BookCrushGroup to find your fulfilled book.`);
-                      console.log(ctx.from.id);
-                      console.log(query.chat_id);
+                      //sendPMID = hashtag.sendPMID
+                      //console.log("about to send PM to" + sendPMID)
+                      //ctx.telegram.sendMessage(hashtag.sendPMID,`Your request has been fulfilled. Please visit @BookCrushGroup to find your fulfilled book.`);
+                      //console.log("pm to send id: "+sendPMID);
+                      //console.log(query.chat_id);
                       ctx.telegram.deleteMessage(query.chat_id,query.message_id);
                     }
                     //ctx.answerCbQuery(`You took your reaction back.`);
