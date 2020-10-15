@@ -1,8 +1,8 @@
 const { Composer } = require(`telegraf`);
 
-const start = `Hi there, Dear BookCrush member!
+const start = `<i>Hi there, Dear BookCrush member!</i>\n
 You will receive notifications from me when your request is fulfilled! (make sure the bot is not stopped or blocked to be able to receive notifications)
-More features coming soon!`;
+\nMore features coming soon!`;
 
 const help = `
 <code>/watch [hashtags...]</code> - add hashtags to your watchlist
@@ -14,7 +14,7 @@ const help = `
 const setup = `
 <b>To set up a channel:</b>
 1. Add me to a channel
-2. Send <code>@ChannelHashBot</code> to your channel
+2. Send <code>@BookCrushMgrBot</code> to your channel
 
 <b>To set up a group:</b>
 1. Add me to a group
@@ -28,7 +28,7 @@ const extra = {
 };
 
 module.exports = bot => {
-    bot.start(Composer.privateChat(Composer.reply(start)));
+    bot.start(Composer.privateChat(Composer.reply(start, extra)));
     bot.help(Composer.privateChat(Composer.reply(help, extra)));
     bot.command(`setup`, Composer.privateChat(Composer.reply(setup, extra)));
 };

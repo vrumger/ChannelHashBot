@@ -5,7 +5,7 @@ const commentMiddleware = require(`../middleware/createComment`);
 const formatLikeKeyboard = require(`../middleware/formatLikeKeyboard`);
 const { actionMap } = formatLikeKeyboard;
 
-var sendPMID, originalRequest;
+var originalRequest;
 
 module.exports = (bot, db) => {
     const countLikes = require(`../middleware/countLikes`)(db);
@@ -26,13 +26,14 @@ module.exports = (bot, db) => {
         if (chat.settings && chat.settings.link) {
             inlineKeyboard.push([
                 {
-                    text: `Original Request`,
-                    url: `https://t.me/${directLink}/${message_id}`,
-                },
-                {
-                  text: `Send PM Notif`,
+                  text: `Send PM Notif ⚠️`,
                   callback_data: `callback_query_notif`,
                 },
+                {
+                    text: `Original Request 📚`,
+                    url: `https://t.me/${directLink}/${message_id}`,
+                },
+
             ]);
         }
         originalRequest = `https://t.me/${directLink}/${message_id}`;
@@ -77,10 +78,6 @@ module.exports = (bot, db) => {
         text =  ctx.from.first_name + `:\n\n` + messageToSend.text || messageToSend.caption || ``;
         entities =
             messageToSend.entities || messageToSend.caption_entities || [];
-        //sendPMID = 12345678;
-        sendPMID = ctx.from.id;
-        //module.exports.sendPMID = sendPMID;
-        console.log(sendPMID + "is the id")
 
         const countLikes = require(`../middleware/countLikes`)(db);
         
@@ -132,7 +129,7 @@ module.exports = (bot, db) => {
 
         let sentMessage;
 
-        if (message.audio) {
+        /*if (message.audio) {
             sentMessage = await ctx.telegram.sendAudio(
                 channel,
                 message.audio.file_id,
@@ -160,7 +157,7 @@ module.exports = (bot, db) => {
                 message.video.file_id,
                 options,
             );
-        } else {
+        } else {*/
             if (chat.settings.comments) {
                 await ctx.createComment(parsedMessage, options);
             }
@@ -170,7 +167,9 @@ module.exports = (bot, db) => {
                 parsedMessage,
                 options,
             );
-        }
+
+
+        //}
 
         return sentMessage;
     };
@@ -214,12 +213,19 @@ module.exports = (bot, db) => {
                         message_id: message.message_id,
                         channel_id: channel,
                         channel_message_id: sentMessage.message_id,
+                        sendPMID: ctx.from.id,
                     });
                 }
             }
         });
+        
+
+
     };
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
     bot.entity(`hashtag`, commentMiddleware, handler);
 
     bot.on(`edited_message`, (ctx, next) => {
@@ -323,12 +329,13 @@ module.exports = (bot, db) => {
                                     parsedMessage,
                                     [],
                                 );
-
+                                console.log(ctx.from.id)
                                 db.messages.insert({
                                     chat_id: ctx.chat.id,
                                     message_id: message.message_id,
                                     channel_id: channelMessage.channel_id,
                                     channel_message_id: sentMessage.message_id,
+                                    sendPMID: ctx.from.id,
                                 });
                             } else {
                                 console.log(err);
@@ -340,11 +347,48 @@ module.exports = (bot, db) => {
         );
     });
   bot.action('callback_query_notif', async ctx =>
-  {
-    const parse = 'html'
-    ctx.telegram.sendMessage(sendPMID, `<i>Your (${originalRequest})[Request] has been fulfilled. Click(right click on desktop) on your request > View Thread to download your fulfilled book.</i>`, {parse})
-    ctx.answerCbQuery(`Sent a notification to the requester!`);
-    }
-)
+  { 
+    var sendPMID, sendPM;
+                        //sendPMID = 12345678;
+        //console.log("chat id is" +ctx.chat.id+"\nMessage id is"+ctx.message.message_id)
+        //console.log(ctx.JSON.Stringify())
+        console.log("channel message id is"+ctx.callbackQuery.message.message_id)
+        const messageId = ctx.callbackQuery.message.message_id
 
+        //test group = -1001293118439, test channel = -1001451172774
+        //bookcrush group = -1001497963829, bookcrush channel = -1001179445761
+        const chatID = -1001497963829
+        const channelId = -1001179445761
+        const query = {chat_id: chatID, channel_id: channelId, channel_message_id: messageId}
+        sleep(100).then(() => { 
+          db.messages.findOne(query, async (err, res) => {
+          if(err)
+            console.log(err)
+          else {
+            console.log(chatID,messageId)
+            console.log("Retrieved this "+res.sendPMID)
+            sendPM = res.sendPMID;
+            console.log(sendPM)
+          }
+        }
+        );
+        });
+        
+        //module.exports.sendPMID = sendPMID;
+        sleep(200).then(() => { console.log(sendPM + "is the id") });
+
+    sleep(300).then(() => {
+ 
+      ctx.telegram.sendMessage(sendPM, `<i>Your <a href="${originalRequest}">Request</a> has been fulfilled. Follow the link to your request and Click(right click on desktop) on your <a href="${originalRequest}">request</a> \> View Thread or Search to download your fulfilled book.</i>`, {parse_mode: "HTML"}).catch( err => {
+      if(err.code !== 200)
+        return ctx.answerCbQuery(`User hasn't registered for PMs`);
+      else
+        return ctx.answerCbQuery(`Sent a notification to the requester!`);
+    });
+    
+    sleep(300).then(() => {ctx.answerCbQuery(`Sent a notification to the requester!`);});
+    
+    });
+  }
+)
 }; 
