@@ -12,6 +12,7 @@ import {
 } from 'telegraf/typings/telegram-types';
 import { Group as IGroup, Message as IMessage } from '../typings/db';
 import { TBot, TContext } from '../typings';
+import Channel from '../models/channel';
 import Group from '../models/group';
 import Message from '../models/message';
 import commentMiddleware from '../middleware/createComment';
@@ -102,7 +103,7 @@ export default (bot: TBot): void => {
     const sendMessage = async (
         ctx: TContext,
         chat: IGroup,
-        channel: number,
+        channelID: number,
         message: TMessage,
         text: string,
         entities: MessageEntity[],
@@ -110,12 +111,13 @@ export default (bot: TBot): void => {
         // Use `!== false` in case it's `undefined`
         if (!chat.settings || chat.settings.forwards !== false) {
             return await ctx.telegram.forwardMessage(
-                channel,
+                channelID,
                 ctx.chat!.id,
                 message.message_id,
             );
         }
 
+        const channel = await Channel.findOne({ chat_id: channelID });
         const parsedMessage: string = textToHtml(text, entities);
         const chatId = ctx.chat!.id.toString().slice(4);
         const directLink = ctx.chat!.username || `c/${chatId}`;
@@ -134,42 +136,50 @@ export default (bot: TBot): void => {
 
         if (message.audio) {
             sentMessage = await ctx.telegram.sendAudio(
-                channel,
+                channelID,
                 message.audio.file_id,
                 options,
             );
         } else if (message.document) {
             sentMessage = await ctx.telegram.sendDocument(
-                channel,
+                channelID,
                 message.document.file_id,
                 options,
             );
         } else if (message.photo) {
             if (chat.settings.comments) {
-                await ctx.createComment!(parsedMessage, options);
+                await ctx.createComment!(
+                    parsedMessage,
+                    channel?.admins || [],
+                    options,
+                );
             }
 
             const photos = [...message.photo];
             const fileId = photos.pop()!.file_id;
 
             sentMessage = await ctx.telegram.sendPhoto(
-                channel,
+                channelID,
                 fileId,
                 options,
             );
         } else if (message.video) {
             sentMessage = await ctx.telegram.sendVideo(
-                channel,
+                channelID,
                 message.video.file_id,
                 options,
             );
         } else {
             if (chat.settings.comments) {
-                await ctx.createComment!(parsedMessage, options);
+                await ctx.createComment!(
+                    parsedMessage,
+                    channel?.admins || [],
+                    options,
+                );
             }
 
             sentMessage = await ctx.telegram.sendMessage(
-                channel,
+                channelID,
                 parsedMessage,
                 options,
             );

@@ -8,7 +8,11 @@ export interface TContext extends TelegrafContext {
     handleError?: (error: Error) => boolean;
     isAdmin?: (chatId: number, fromId: number) => Promise<boolean>;
     downloadPhoto?: () => Promise<Buffer>;
-    createComment?: (text: string, options: ExtraReplyMessage) => void;
+    createComment?: (
+        text: string,
+        admins: number[],
+        options: ExtraReplyMessage,
+    ) => void;
 }
 
 export type TNext = () => Promise<void>;

@@ -34,7 +34,11 @@ export default (ctx: TContext, next: TNext): void => {
         });
     };
 
-    ctx.createComment = async function (text: string, options) {
+    ctx.createComment = async function (
+        text: string,
+        admins: number[],
+        options,
+    ) {
         const message = (this.message || this.editedMessage)!;
 
         let comment;
@@ -45,6 +49,7 @@ export default (ctx: TContext, next: TNext): void => {
             caption: text,
             text: text,
             parse_mode: 'html',
+            administrators: admins.join(','),
         };
 
         try {
