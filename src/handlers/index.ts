@@ -4,6 +4,7 @@ import channelPost from './channelPost';
 import hashtag from './hashtag';
 import help from './help';
 import likes from './likes';
+import listChannels from './listChannels';
 import newMember from './newMember';
 import settings from './settings';
 import tags from './tags';
@@ -15,6 +16,7 @@ export default (bot: TBot): void => {
     channelPost(bot);
     newMember(bot);
     settings(bot);
+    listChannels(bot);
     watch(bot);
     unwatch(bot);
     tags(bot);
