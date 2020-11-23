@@ -61,6 +61,9 @@ module.exports = (bot, db) => {
                     if (ctx.handleError(err)) return;
                     if(actionMap.get(action) == "Can't find ❌")
                     {
+                      //const [plus, minus] = await countLikes(chat_id, message_id);
+                      //if(minus == 2)
+
                       //ctx.telegram.sendMessage(-1001293118439,`Your request has been fulfilled. Please find it below this message`,query.message_id);
                       ctx.answerCbQuery(`You ${actionMap.get(action)} this.`);
                     }

@@ -1,6 +1,6 @@
 const { Composer } = require(`telegraf`);
 
-const start = `<i>Hi there, Dear BookCrush member!</i>\n
+const start = `<i>Hey there, Dear BookCrush member!</i>\n
 You will receive notifications from me when your request is fulfilled! (make sure the bot is not stopped or blocked to be able to receive notifications)
 \nMore features coming soon!`;
 
