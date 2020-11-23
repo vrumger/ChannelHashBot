@@ -421,12 +421,14 @@ module.exports = (bot, db) => {
 
           const markup = Markup.inlineKeyboard([
             //bot.inlineButton('🔗 Reddit', { url: `https://www.reddit.com${redditPost.permalink}` }),
-            Markup.callbackButton('🗑', 'callback_delete'
+            Markup.urlButton('PM me for alerts','https://t.me/BookCrushMgrBot'),
+            Markup.callbackButton('🗑 (admins only)', 'callback_delete'
             ),
+            
           ]);
 
 
-          ctx.telegram.sendMessage(-1001497963829, `Hey [${first}](tg://user?id=${sendPM}), Here's your requested book. Enjoy!\n_(P.S:_ [PM me](https://t.me/BookCrushMgrBot) _to get request alerts)_`, {
+          ctx.telegram.sendMessage(-1001497963829, `Hey [${first}](tg://user?id=${sendPM}) 👋, Here's your requested book. Happy Reading/Listening!`, {
             parse_mode: 'Markdown', disable_web_page_preview: true, reply_markup: markup
           })
         });
