@@ -406,9 +406,9 @@ module.exports = (bot, db) => {
 
       ctx.telegram.sendMessage(sendPM, `<i>Your <a href="${originalRequest}">Request</a> has been fulfilled. Follow the link to your request and Search 🔎 to download your fulfilled book.\n\nTip: Search with "@" in the search bar to see all your tags</i>`, { parse_mode: "HTML" }).catch(err => {
         if (err.code !== 200)
-          return ctx.answerCbQuery(`User hasn't registered for PMs`);
+          return ctx.answerCbQuery(`Tagged in Group ✅   PM Alert 🚫`);
         else
-          return ctx.answerCbQuery(`Sent a notification to the requester!`);
+          return ctx.answerCbQuery(`Tagged in Group ✅   PM Alert ✅`);
       });
 
       sleep(800).then(() => {
@@ -427,12 +427,19 @@ module.exports = (bot, db) => {
             
           ]);
 
-
-          ctx.telegram.sendMessage(-1001497963829, `Hey [${first}](tg://user?id=${sendPM}) 👋, Here's your requested book. Happy Reading/Listening!`, {
+          //var delmessage;
+          //async () => {
+            delmessage = ctx.telegram.sendMessage(-1001497963829, `Hey [${first}](tg://user?id=${sendPM}) 👋, Here's your requested book. Happy Reading/Listening!`, {
             parse_mode: 'Markdown', disable_web_page_preview: true, reply_markup: markup
           })
+          /*console.log(delmessage)
+          }
+          console.log(delmessage.message_id)
+          sleep(1000).then(() => {
+            ctx.telegram.deleteMessage(delmessage.message_id);
+          });*/
         });
-        ctx.answerCbQuery(`Sent a notification to the requester!`);
+        ctx.answerCbQuery(`Tagged in Group ✅\nPM Alert ✅`);
       });
 
     });
@@ -440,7 +447,6 @@ module.exports = (bot, db) => {
   )
 
   bot.action('callback_delete', async ctx => {
-    var admins = [518480049, 127710187, 1060909073, 15024063, 108528226, 515599610,462933398,486100797,1311936653]
     ctx.telegram.getChatMember(-1001497963829, ctx.from.id).then(function(chatMember) { 
       if (chatMember.status == "administrator" || chatMember.status == "creator")
         ctx.deleteMessage();
