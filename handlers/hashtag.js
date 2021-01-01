@@ -362,9 +362,23 @@ module.exports = (bot, db) => {
   });
 
   bot.action('callback_query_notif', async ctx => {
-
-    repldb.list().then(keys => { console.log(keys) });
-
+ /*repldb.list().then(keys => {
+          keys.forEach((key) => {
+            sleep(200).then(() => { repldb.delete(key).then(() =>{}) });
+      });
+ });
+ requests.list().then(keys => {
+          keys.forEach((key) => {
+            sleep(200).then(() => { requests.delete(key).then(() =>{}) });
+      });
+ });
+     //list all keys
+     repldb.list().then(keys => { console.log(keys) });
+    //delete all keys
+    (async () => {
+    await repldb.empty();
+    await requests.empty();
+})();*/
     var sendPM;
     //sendPMID = 12345678;
     //console.log("chat id is" +ctx.chat.id+"\nMessage id is"+ctx.message.message_id)
@@ -410,7 +424,8 @@ module.exports = (bot, db) => {
         else
           return ctx.answerCbQuery(`Tagged in Group ✅   PM Alert ✅`);
       });
-
+     
+      
       sleep(800).then(() => {
         var first = "BookCrush Member"
         ctx.telegram.getChatMember(chatID, sendPM).then(function(chatMember) {
