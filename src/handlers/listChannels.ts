@@ -53,9 +53,10 @@ export default (bot: TBot): void => {
                 .filter(id => id !== ctx.botInfo!.id);
         } catch (error) {
             const errors = [
-                'Forbidden: bot was kicked from the channel chat',
                 'Bad Request: chat not found',
                 'Bad Request: member list is inaccessible',
+                'Forbidden: bot is not a member of the channel chat',
+                'Forbidden: bot was kicked from the channel chat',
             ];
 
             if (!errors.includes(error.description)) {
