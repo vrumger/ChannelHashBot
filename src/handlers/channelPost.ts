@@ -3,7 +3,7 @@ import { TBot } from '../typings';
 
 export default (bot: TBot): void => {
     bot.on('channel_post', async ctx => {
-        const connectCommands: string[] = ['/connect', `@${bot.context.me}`.toLowerCase()];
+        const connectCommands: string[] = ['/connect', `@${ctx.me}`.toLowerCase()];
 
         if (ctx.channelPost!.text && connectCommands.includes(ctx.channelPost!.text.toLowerCase())) {
             const { title, username } = ctx.chat!;
