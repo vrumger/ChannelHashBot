@@ -1,46 +1,42 @@
 import { GroupTags, Group as IGroup } from '../typings/db';
+import { Composer } from 'telegraf';
+import CustomContext from '../context';
 import Group from '../models/group';
-import { TBot } from '../typings';
-import adminMiddleware from '../middleware/admin';
+import { deunionize } from '../utils';
 
-export default (bot: TBot): void => {
-    bot.command('unwatch', adminMiddleware(), async ctx => {
-        if (!ctx.chat!.type.includes('group')) return;
+export const unwatch = Composer.command<CustomContext>(
+    'unwatch',
+    Composer.groupChat(
+        Composer.admin(async ctx => {
+            const { chat, text, entities } = deunionize(ctx.message);
 
-        const { text, entities } = ctx.message!;
+            let dbChat: IGroup | null;
+            try {
+                dbChat = await Group.findOne({ chat_id: chat.id });
+            } catch (err) {
+                console.error(err);
+                ctx.reply('There was an error.');
+                return;
+            }
 
-        let chat: IGroup | null;
-        try {
-            chat = await Group.findOne({ chat_id: ctx.chat!.id });
-        } catch (err) {
-            console.error(err);
-            ctx.reply('There was an error.');
-            return;
-        }
+            if (!dbChat) {
+                ctx.reply('Chat not found.');
+                return;
+            }
 
-        if (!chat) {
-            ctx.reply('Chat not found.');
-            return;
-        }
+            const tags = (entities || [])
+                .filter(entity => entity.type === 'hashtag')
+                .map(entity => text.slice(entity.offset + 1, entity.offset + entity.length));
+            const _tags: GroupTags = { ...dbChat.tags };
 
-        const tags = (entities || [])
-            .filter(entity => entity.type === 'hashtag')
-            .map(entity =>
-                text!.slice(entity.offset + 1, entity.offset + entity.length),
-            );
-        const _tags: GroupTags = { ...chat.tags };
+            if (dbChat.tags) {
+                tags.forEach(tag => delete _tags[tag]);
+            }
 
-        if (chat.tags) {
-            tags.forEach(tag => delete _tags[tag]);
-        }
+            dbChat.tags = _tags;
+            await dbChat.save();
 
-        chat.tags = _tags;
-        await chat.save();
-
-        ctx.reply(
-            `The following tags have been removed:\n${tags
-                .map(tag => `#${tag}`)
-                .join(', ')}`,
-        );
-    });
-};
+            ctx.reply(`The following tags have been removed:\n${tags.map(tag => `#${tag}`).join(', ')}`);
+        }),
+    ),
+);
