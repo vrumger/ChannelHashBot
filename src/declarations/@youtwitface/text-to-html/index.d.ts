@@ -1,4 +1,4 @@
-type MessageEntity = import('telegraf/typings/telegram-types').MessageEntity;
+type MessageEntity = import('typegram').MessageEntity;
 
 declare module '@youtwitface/text-to-html' {
     const textToHtml: (text: string, entities: MessageEntity[]) => string;

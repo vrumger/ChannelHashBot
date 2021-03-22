@@ -1,16 +1,8 @@
 // TODO: cleanup
 
-import {
-    ExtraAudio,
-    ExtraDocument,
-    ExtraPhoto,
-    ExtraVideo,
-    InlineKeyboardMarkup,
-    MessageEntity,
-    ParseMode,
-    Message as TMessage,
-} from 'telegraf/typings/telegram-types';
+import { ExtraAudio, ExtraDocument, ExtraPhoto, ExtraVideo } from 'telegraf/typings/telegram-types';
 import { Group as IGroup, Message as IMessage } from '../typings/db';
+import { InlineKeyboardMarkup, MessageEntity, ParseMode, Message as TMessage } from 'typegram';
 import { deunionize, getEntities, getText } from '../utils';
 import Channel from '../models/channel';
 import { Composer } from 'telegraf';

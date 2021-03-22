@@ -1,8 +1,9 @@
-import { ExtraReplyMessage, InlineKeyboardButton, InlineKeyboardMarkup } from 'telegraf/typings/telegram-types';
+import { InlineKeyboardButton, InlineKeyboardMarkup } from 'typegram';
 import { Context } from 'telegraf';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import { FilterQuery } from 'mongoose';
 import { Like as ILike } from './typings/db';
 import Like from './models/like';
-import { MongooseFilterQuery } from 'mongoose';
 import { actionMap } from './handlers/likes';
 import request from 'request-promise';
 
@@ -27,7 +28,7 @@ export default class CustomContext extends Context {
     }
 
     private _countLikes(
-        query: MongooseFilterQuery<Pick<ILike, '_id' | 'chat_id' | 'from_id' | 'message_id' | 'action'>>,
+        query: FilterQuery<Pick<ILike, '_id' | 'chat_id' | 'from_id' | 'message_id' | 'action'>>,
     ): Promise<number> {
         return new Promise((resolve, reject) => {
             Like.countDocuments(query, (error, likes) => {

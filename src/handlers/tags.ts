@@ -3,7 +3,7 @@ import Channel from '../models/channel';
 import { Composer } from 'telegraf';
 import CustomContext from '../context';
 import Group from '../models/group';
-import { Chat as TChat } from 'telegraf/typings/telegram-types';
+import { Chat as TChat } from 'typegram';
 import { bot } from '../bot';
 import escapeHtml from '@youtwitface/escape-html';
 

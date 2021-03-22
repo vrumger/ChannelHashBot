@@ -1,7 +1,8 @@
-import { Chat, ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import { GroupSettings, Group as IGroup } from '../typings/db';
+import { Chat } from 'typegram';
 import { Composer } from 'telegraf';
 import CustomContext from '../context';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import Group from '../models/group';
 import escapeHtml from '@youtwitface/escape-html';
 

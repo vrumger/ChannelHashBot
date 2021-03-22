@@ -1,7 +1,7 @@
 import Channel from '../models/channel';
 import { Composer } from 'telegraf';
 import CustomContext from '../context';
-import { InlineKeyboardMarkup } from 'telegraf/typings/telegram-types';
+import { InlineKeyboardMarkup } from 'typegram';
 
 const getChannelButtons = async (userId: number): Promise<InlineKeyboardMarkup['inline_keyboard'] | null> => {
     const channels = await Channel.find({ admins: { $in: [userId] } });
