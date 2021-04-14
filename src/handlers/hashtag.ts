@@ -44,7 +44,7 @@ const getReplyMarkup = (
 };
 
 const getMessage = (ctx: CustomContext) => {
-    if (!ctx.message || !ctx.editedMessage) return;
+    if (!ctx.message && !ctx.editedMessage) return;
     const message = deunionize(ctx.message ?? ctx.editedMessage);
     const { forward_date, reply_to_message: reply } = deunionize(message);
 
