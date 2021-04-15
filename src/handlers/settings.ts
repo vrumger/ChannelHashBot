@@ -101,7 +101,7 @@ export const settings = Composer.command<CustomContext>(
 
 export const applySetting = Composer.action<CustomContext>(
     /^settings:(-\d+):([^:]+):(true|false)$/,
-    Composer.admin(async ctx => {
+    async ctx => {
         if (!ctx.from) return;
 
         const [, chatId, setting, bool] = ctx.match;
@@ -136,5 +136,5 @@ export const applySetting = Composer.action<CustomContext>(
         await chat.save();
 
         ctx.editMessageReplyMarkup(generateMarkup(chat));
-    }),
+    },
 );
