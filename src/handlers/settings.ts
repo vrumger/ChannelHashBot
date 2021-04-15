@@ -135,6 +135,7 @@ export const applySetting = Composer.action<CustomContext>(
         chat.settings = updateSettings(setting as keyof GroupSettings, _settings);
         await chat.save();
 
-        ctx.editMessageReplyMarkup(generateMarkup(chat));
+        await ctx.editMessageReplyMarkup(generateMarkup(chat));
+        await ctx.answerCbQuery();
     },
 );
