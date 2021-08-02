@@ -1,31 +1,34 @@
-import { Composer } from 'telegraf';
-import CustomContext from '../context';
+import { countLikes, formatLikeKeyboard, handleError } from '../utils';
+import { Composer } from 'grammy';
 import { Like as ILike } from '../typings/db';
 import Like from '../models/like';
+
+const composer = new Composer();
 
 export const actionMap = {
     '+': '👍',
     '-': '👎',
 };
 
-export const likes = Composer.action<CustomContext>(/^(\+|-)1$/, async ctx => {
-    const action = ctx.match[1] as ILike['action'];
-    const { from, message } = ctx.callbackQuery;
-    if (!message) return;
+composer.callbackQuery(/^(\+|-)1$/, async ctx => {
+    const action = ctx.match![1] as ILike['action'];
+    const from = ctx.from;
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore telegram-typings is outdated
-    const { message_id, chat, reply_markup } = message;
-    const { id: chat_id } = chat;
-    const { inline_keyboard: inlineKeyboard } = reply_markup;
+    if (!ctx.msg) {
+        return;
+    }
 
-    const query = { chat_id, message_id, from_id: from.id };
+    const query = {
+        chat_id: ctx.msg.chat.id,
+        message_id: ctx.msg.message_id,
+        from_id: from.id,
+    };
 
     let like: ILike | null;
     try {
         like = await Like.findOne(query);
     } catch (err) {
-        await ctx.handleError(err);
+        await handleError(ctx, err);
         return;
     }
 
@@ -35,23 +38,36 @@ export const likes = Composer.action<CustomContext>(/^(\+|-)1$/, async ctx => {
             action: action as ILike['action'],
         }).save();
 
-        await ctx.answerCbQuery(`You ${actionMap[action]} this.`);
+        await ctx.answerCallbackQuery({
+            text: `You ${actionMap[action]} this.`,
+        });
     } else if (like.action === action) {
         await like.deleteOne();
-        await ctx.answerCbQuery('You took your reaction back.');
+        await ctx.answerCallbackQuery({ text: 'You took your reaction back.' });
     } else {
         like.action = action;
         await like.save();
-        await ctx.answerCbQuery(`You ${actionMap[action]} this.`);
+        await ctx.answerCallbackQuery({
+            text: `You ${actionMap[action]} this.`,
+        });
     }
 
     try {
-        const [plus, minus] = await ctx.countLikes(chat_id, message_id);
+        const [plus, minus] = await countLikes(
+            ctx.msg.chat.id,
+            ctx.msg.message_id,
+        );
 
-        ctx.editMessageReplyMarkup({
-            inline_keyboard: [ctx.formatLikeKeyboard(plus, minus), ...inlineKeyboard.slice(1)],
+        await ctx.editMessageReplyMarkup({
+            reply_markup: formatLikeKeyboard(
+                plus,
+                minus,
+                ctx.msg.reply_markup?.inline_keyboard.slice(1),
+            ),
         });
     } catch (err) {
-        await ctx.handleError(err);
+        await handleError(ctx, err);
     }
 });
+
+export default composer;

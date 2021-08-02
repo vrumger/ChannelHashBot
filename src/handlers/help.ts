@@ -1,22 +1,22 @@
-import { Composer } from 'telegraf';
-import CustomContext from '../context';
-import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import { Composer } from 'grammy';
 
-const startMessage =
+const composer = new Composer();
+
+const start =
     'Hi, I was made to help you keep track of hashtags that are sent to your group by sending them to a channel. ' +
     'To learn my commands, send /help and for a step-by-step guide on how to set me up, send /setup.';
 
-const helpMessage = `
+const help = `
 <code>/watch [hashtags...]</code> - add hashtags to your watchlist
 <code>/unwatch [hashtags...]</code> - remove tags from your watchlist
 <code>/tags</code> - get a list of the hashtags in your watchlist and its destination
 <code>/settings</code> - change your groups configuration
 `;
 
-const setupMessage = `
+const setup = `
 <b>To set up a channel:</b>
 1. Add me to a channel
-2. Send <code>@ChannelHashBot</code> to your channel
+2. Send <code>/connect</code> to your channel
 
 <b>To set up a group:</b>
 1. Add me to a group
@@ -25,13 +25,10 @@ const setupMessage = `
 4. (Optional) send <code>/settings</code> to configure me
 `;
 
-const extra: ExtraReplyMessage = {
-    parse_mode: 'HTML',
-};
+composer
+    .filter(ctx => ctx.chat?.type === 'private')
+    .command('start', ctx => ctx.reply(start))
+    .command('help', ctx => ctx.reply(help, { parse_mode: 'HTML' }))
+    .command('setup', ctx => ctx.reply(setup, { parse_mode: 'HTML' }));
 
-export const start = Composer.command<CustomContext>('start', Composer.privateChat(Composer.reply(startMessage)));
-export const help = Composer.command<CustomContext>('help', Composer.privateChat(Composer.reply(helpMessage, extra)));
-export const setup = Composer.command<CustomContext>(
-    'setup',
-    Composer.privateChat(Composer.reply(setupMessage, extra)),
-);
+export default composer;

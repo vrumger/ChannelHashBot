@@ -1,11 +1,9 @@
-import { Message } from 'typegram';
-
-type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
-// eslint-disable-next-line @typescript-eslint/ban-types
-type Deunionize<T extends object> = T & Partial<UnionToIntersection<T>>;
-
-// eslint-disable-next-line @typescript-eslint/ban-types
-export const deunionize = <T extends object>(t: T): Deunionize<T> => t;
+import { Context, InlineKeyboard } from 'grammy';
+import { InlineKeyboardButton, Message, MessageEntity } from '@grammyjs/types';
+import { FilterQuery } from 'mongoose';
+import { Like as ILike } from './typings/db';
+import Like from './models/like';
+import { actionMap } from './handlers/likes';
 
 export function getText(msg: Message | undefined): string | undefined {
     if (msg == null) return undefined;
@@ -20,3 +18,63 @@ export function getEntities(msg: Message | undefined): MessageEntity[] {
     if ('entities' in msg) return msg.entities ?? [];
     return [];
 }
+
+export const handleError = async (
+    ctx: Context,
+    error: Error,
+): Promise<boolean> => {
+    if (error) {
+        console.error(error);
+        await ctx.answerCallbackQuery({ text: '🚫 There was an error.' });
+        return true;
+    }
+
+    return false;
+};
+
+const _countLikes = (query: FilterQuery<ILike>): Promise<number> =>
+    new Promise((resolve, reject) => {
+        Like.countDocuments(query, (error, likes) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(likes);
+            }
+        });
+    });
+
+export const countLikes = (
+    chat_id: number,
+    message_id: number,
+): Promise<[number, number]> =>
+    Promise.all([
+        _countLikes({ chat_id, message_id, action: '+' }),
+        _countLikes({ chat_id, message_id, action: '-' }),
+    ]);
+
+export const formatLikeKeyboard = (
+    plus: number,
+    minus: number,
+    extra?: InlineKeyboardButton[][],
+): InlineKeyboard => {
+    const keyboard = new InlineKeyboard()
+        .text(
+            plus === 0 && minus === 0
+                ? actionMap['+']
+                : `${actionMap['+']} (${plus})`,
+            '+1',
+        )
+        .text(
+            plus === 0 && minus === 0
+                ? actionMap['-']
+                : `${actionMap['-']} (${minus})`,
+            '-1',
+        )
+        .row();
+
+    if (extra) {
+        return extra.reduce((k, r) => k.add(...r).row(), keyboard);
+    }
+
+    return keyboard;
+};

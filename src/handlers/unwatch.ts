@@ -1,42 +1,61 @@
 import { GroupTags, Group as IGroup } from '../typings/db';
-import { Composer } from 'telegraf';
-import CustomContext from '../context';
+import { Composer } from 'grammy';
 import Group from '../models/group';
-import { deunionize } from '../utils';
 
-export const unwatch = Composer.command<CustomContext>(
-    'unwatch',
-    Composer.groupChat(
-        Composer.admin(async ctx => {
-            const { chat, text, entities } = deunionize(ctx.message);
+const composer = new Composer();
 
-            let dbChat: IGroup | null;
-            try {
-                dbChat = await Group.findOne({ chat_id: chat.id });
-            } catch (err) {
-                console.error(err);
-                ctx.reply('There was an error.');
-                return;
-            }
+composer.command('unwatch', async ctx => {
+    if (
+        !ctx.chat ||
+        !['group', 'supergroup'].includes(ctx.chat?.type) ||
+        ctx.senderChat?.type === 'channel'
+    ) {
+        return;
+    }
 
-            if (!dbChat) {
-                ctx.reply('Chat not found.');
-                return;
-            }
+    if (ctx.msg.sender_chat?.id === ctx.chat.id) {
+        const user = await ctx.getAuthor();
 
-            const tags = (entities || [])
-                .filter(entity => entity.type === 'hashtag')
-                .map(entity => text.slice(entity.offset + 1, entity.offset + entity.length));
-            const _tags: GroupTags = { ...dbChat.tags };
+        if (!['creator', 'administrator'].includes(user.status)) {
+            return;
+        }
+    }
 
-            if (dbChat.tags) {
-                tags.forEach(tag => delete _tags[tag]);
-            }
+    const { chat, text, entities } = ctx.msg;
 
-            dbChat.tags = _tags;
-            await dbChat.save();
+    let dbChat: IGroup | null;
+    try {
+        dbChat = await Group.findOne({ chat_id: chat.id });
+    } catch (err) {
+        console.error(err);
+        await ctx.reply('There was an error.');
+        return;
+    }
 
-            ctx.reply(`The following tags have been removed:\n${tags.map(tag => `#${tag}`).join(', ')}`);
-        }),
-    ),
-);
+    if (!dbChat) {
+        await ctx.reply('Chat not found.');
+        return;
+    }
+
+    const tags = (entities || [])
+        .filter(entity => entity.type === 'hashtag')
+        .map(entity =>
+            text.slice(entity.offset + 1, entity.offset + entity.length),
+        );
+    const _tags: GroupTags = { ...dbChat.tags };
+
+    if (dbChat.tags) {
+        tags.forEach(tag => delete _tags[tag]);
+    }
+
+    dbChat.tags = _tags;
+    await dbChat.save();
+
+    await ctx.reply(
+        `The following tags have been removed:\n${tags
+            .map(tag => `#${tag}`)
+            .join(', ')}`,
+    );
+});
+
+export default composer;

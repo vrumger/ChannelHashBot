@@ -6,7 +6,7 @@
         "esModuleInterop": true,
         "outDir": "build/",
         "typeRoots": ["src/declarations/", "node_modules/@types/"],
-        "types": ["@youtwitface/escape-html", "@youtwitface/text-to-html"]
+        "types": ["@youtwitface/escape-html"]
     },
     "include": ["src/"]
 }
