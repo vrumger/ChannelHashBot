@@ -1,6 +1,6 @@
 import { Bot, GrammyError, HttpError } from 'grammy';
-import { run, sequentialize } from '@grammyjs/runner';
 import addChannel from './handlers/add-channel';
+import { apiThrottler } from '@grammyjs/transformer-throttler';
 import discussion from './handlers/discussion';
 import dotenv from 'dotenv';
 import hashtag from './handlers/hashtag';
@@ -8,6 +8,7 @@ import help from './handlers/help';
 import likes from './handlers/likes';
 import listChannels from './handlers/list-channels';
 import mongoose from 'mongoose';
+import { run } from '@grammyjs/runner';
 import settings from './handlers/settings';
 import tags from './handlers/tags';
 import unwatch from './handlers/unwatch';
@@ -34,8 +35,7 @@ bot.catch(err => {
     console.error(e.stack);
 });
 
-// TODO:
-bot.use(sequentialize(ctx => `${ctx.chat?.id}:${ctx.from?.id}`));
+bot.api.config.use(apiThrottler());
 
 bot.use(watch);
 bot.use(unwatch);
