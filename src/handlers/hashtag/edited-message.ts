@@ -145,7 +145,7 @@ export const handleEditedMessage: HashtagHandler = async (
                     channel_message_id: sentMessage.message_id,
                 }).save();
             } else {
-                console.log(err);
+                console.error(err);
             }
         });
     }

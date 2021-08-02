@@ -152,7 +152,7 @@ composer.callbackQuery(/^(\d+):(-\d+):(-?\d+)$/, async ctx => {
     try {
         chat = await Group.findOne({ chat_id: group });
     } catch (err) {
-        console.log(err);
+        console.error(err);
         await ctx.answerCallbackQuery({ text: '🚫' });
         return;
     }
