@@ -1,4 +1,4 @@
-import { Bot, GrammyError, HttpError } from 'grammy';
+import { Bot } from 'grammy';
 import addChannel from './handlers/add-channel';
 import { apiThrottler } from '@grammyjs/transformer-throttler';
 import discussion from './handlers/discussion';
@@ -19,20 +19,8 @@ dotenv.config();
 const bot = new Bot(process.env.BOT_TOKEN as string);
 
 bot.catch(err => {
-    const ctx = err.ctx;
-    const e = err.error as Error;
-
-    console.error(`Error while handling update ${ctx.update.update_id}:`);
-
-    if (e instanceof GrammyError) {
-        console.error('Error in request:', e.description);
-    } else if (e instanceof HttpError) {
-        console.error('Could not contact Telegram:', e);
-    } else {
-        console.error('Unknown error:', e);
-    }
-
-    console.error(e.stack);
+    console.error(`Error while handling update ${err.ctx.update.update_id}:`);
+    console.error(err.error);
 });
 
 bot.api.config.use(apiThrottler());
