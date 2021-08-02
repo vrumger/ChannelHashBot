@@ -19,7 +19,7 @@ composer
                 return;
             }
 
-            if (!chat) {
+            if (!chat || !chat.settings?.comments) {
                 return;
             }
 
