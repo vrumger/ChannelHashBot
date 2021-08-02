@@ -79,7 +79,6 @@ export const sendMessage = async ({
         );
     }
 
-    // const channel = await Channel.findOne({ chat_id: channelID });
     const chatId = message.chat.id.toString().slice(4);
     const directLink =
         'username' in message.chat && message.chat.username
@@ -105,15 +104,6 @@ export const sendMessage = async ({
             caption_entities: entities,
         });
     } else if (message.photo) {
-        // TODO: add a link to discussion group
-        // if (chat.settings.comments) {
-        //     await ctx.createComment!(
-        //         parsedMessage,
-        //         channel?.admins || [],
-        //         options,
-        //     );
-        // }
-
         const photos = [...message.photo];
         const fileId = photos.pop()!.file_id;
 
@@ -129,15 +119,6 @@ export const sendMessage = async ({
             caption_entities: entities,
         });
     } else {
-        // TODO: add a link to discussion group
-        // if (chat.settings.comments) {
-        //     await ctx.createComment!(
-        //         parsedMessage,
-        //         channel?.admins || [],
-        //         options,
-        //     );
-        // }
-
         return await ctx.api.sendMessage(channelID, text, {
             reply_markup: replyMarkup,
             entities,
