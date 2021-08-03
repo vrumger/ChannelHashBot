@@ -25,10 +25,10 @@ const setup = `
 4. (Optional) send <code>/settings</code> to configure me
 `;
 
-composer
-    .filter(ctx => ctx.chat?.type === 'private')
-    .command('start', ctx => ctx.reply(start))
-    .command('help', ctx => ctx.reply(help, { parse_mode: 'HTML' }))
-    .command('setup', ctx => ctx.reply(setup, { parse_mode: 'HTML' }));
+const filter = composer.filter(ctx => ctx.chat?.type === 'private');
+
+filter.command('start', ctx => ctx.reply(start));
+filter.command('help', ctx => ctx.reply(help, { parse_mode: 'HTML' }));
+filter.command('setup', ctx => ctx.reply(setup, { parse_mode: 'HTML' }));
 
 export default composer;
