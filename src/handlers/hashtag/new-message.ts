@@ -1,4 +1,5 @@
 import { HashtagHandler, sendMessage } from './utils';
+import { GrammyError } from 'grammy';
 import Group from '../../models/group';
 import { Group as IGroup } from '../../typings/db';
 import Message from '../../models/message';
@@ -44,22 +45,41 @@ export const handleNewMessage: HashtagHandler = async (
                 continue;
             }
 
-            const sentMessage = await sendMessage({
-                ctx,
-                chat,
-                channelID,
-                message,
-                text,
-                entities,
-            });
+            try {
+                const sentMessage = await sendMessage({
+                    ctx,
+                    chat,
+                    channelID,
+                    message,
+                    text,
+                    entities,
+                });
 
-            sentChannels.push(channelID);
-            await new Message({
-                chat_id: ctx.msg.chat.id,
-                message_id: message.message_id,
-                channel_id: channelID,
-                channel_message_id: sentMessage.message_id,
-            }).save();
+                sentChannels.push(channelID);
+                await new Message({
+                    chat_id: ctx.msg.chat.id,
+                    message_id: message.message_id,
+                    channel_id: channelID,
+                    channel_message_id: sentMessage.message_id,
+                }).save();
+            } catch (error) {
+                if (
+                    !(error instanceof GrammyError) &&
+                    ![400, 403].includes(error.error_code)
+                ) {
+                    throw error;
+                }
+
+                if (chat.tags[tag].length === 1) {
+                    delete chat.tags[tag];
+                } else {
+                    chat.tags[tag].splice(chat.tags[tag].indexOf(channelID), 1);
+                }
+
+                chat.markModified('tags');
+            }
         }
     }
+
+    await chat.save();
 };
