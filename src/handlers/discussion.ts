@@ -8,7 +8,11 @@ import { getReplyMarkup } from './hashtag/utils';
 const composer = new Composer();
 
 composer
-    .filter(ctx => ctx.senderChat?.type === 'channel')
+    .filter(ctx =>
+        Boolean(
+            ctx.senderChat?.type === 'channel' && ctx.msg?.is_automatic_forward,
+        ),
+    )
     .on('message', async ctx => {
         if (ctx.msg.forward_from_message_id) {
             let chat: IGroup | null;
