@@ -1,4 +1,4 @@
-import { Composer, InlineKeyboard } from 'grammy';
+import { Composer, GrammyError, InlineKeyboard } from 'grammy';
 import Channel from '../models/channel';
 
 const composer = new Composer();
@@ -27,12 +27,12 @@ composer.command('channels').filter(
         const buttons = await getChannelButtons(from.id);
 
         if (buttons === null) {
-            await ctx.reply('You don\'t have any channels.');
+            await ctx.reply("You don't have any channels.");
             return;
         }
 
         await ctx.reply(
-            'Here\'s a list of channels that I\'m admin in with you.',
+            "Here's a list of channels that I'm admin in with you.",
             { reply_markup: buttons },
         );
     },
@@ -56,7 +56,10 @@ composer.callbackQuery(/^reload:(-\d+)$/, async ctx => {
             'Forbidden: bot was kicked from the channel chat',
         ];
 
-        if (!errors.includes(error.description)) {
+        if (
+            !(error instanceof GrammyError) ||
+            !errors.includes(error.description)
+        ) {
             throw error;
         }
     }
@@ -67,7 +70,7 @@ composer.callbackQuery(/^reload:(-\d+)$/, async ctx => {
         const buttons = await getChannelButtons(from.id);
 
         if (buttons === null) {
-            await ctx.editMessageText('You don\'t have any channels.');
+            await ctx.editMessageText("You don't have any channels.");
         } else {
             await ctx.editMessageReplyMarkup({ reply_markup: buttons });
         }

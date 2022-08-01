@@ -1,4 +1,4 @@
-import { Composer, Context, InlineKeyboard } from 'grammy';
+import { Composer, Context, GrammyError, InlineKeyboard, RawApi } from 'grammy';
 import { GroupSettings, Group as IGroup } from '../typings/db';
 import { Chat } from '@grammyjs/types';
 import Group from '../models/group';
@@ -82,7 +82,7 @@ const sendSettings = async (ctx: Context, recipient: number) => {
             ? `<a href="https://t.me/${chat.username}">${chatTitle}</a>`
             : chatTitle;
     const message = `Use the buttons below to configure ${ctx.me.username}'s behavior for ${chatLink}.`;
-    const messageOptions: Other<'sendMessage', 'text'> = {
+    const messageOptions: Other<RawApi, 'sendMessage', 'chat_id' | 'text'> = {
         reply_markup: generateMarkup(dbChat),
         disable_web_page_preview: true,
         parse_mode: 'HTML',
@@ -91,7 +91,10 @@ const sendSettings = async (ctx: Context, recipient: number) => {
     try {
         await ctx.api.sendMessage(recipient, message, messageOptions);
     } catch (err) {
-        if (messageErrors.includes(err.description)) {
+        if (
+            err instanceof GrammyError &&
+            messageErrors.includes(err.description)
+        ) {
             await ctx.reply(message, messageOptions);
         } else {
             console.error(err);
@@ -102,7 +105,7 @@ const sendSettings = async (ctx: Context, recipient: number) => {
 composer.command('settings', async ctx => {
     if (
         !ctx.chat ||
-        !['group', 'supergroup'].includes(ctx.chat?.type) ||
+        !['group', 'supergroup'].includes(ctx.chat.type) ||
         !ctx.from ||
         ctx.senderChat?.type === 'channel'
     ) {

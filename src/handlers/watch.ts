@@ -65,7 +65,7 @@ const sendChannelSelection = async (ctx: Context, message: TMessage) => {
 composer.command('watch', async ctx => {
     if (
         !ctx.chat ||
-        !['group', 'supergroup'].includes(ctx.chat?.type) ||
+        !['group', 'supergroup'].includes(ctx.chat.type) ||
         !ctx.from ||
         ctx.senderChat?.type === 'channel'
     ) {
@@ -77,7 +77,7 @@ composer.command('watch', async ctx => {
 
         if (me.status === 'administrator') {
             await ctx.reply(
-                'Who are you again? Oh, you\'re anonymous. Click this magical button so I can find your channels.',
+                "Who are you again? Oh, you're anonymous. Click this magical button so I can find your channels.",
                 {
                     reply_to_message_id: ctx.msg.message_id,
                     allow_sending_without_reply: true,
@@ -89,7 +89,7 @@ composer.command('watch', async ctx => {
             );
         } else {
             await ctx.reply(
-                'It looks like you\'re anonymous. You need to make me admin so I can figure out what channels you have.',
+                "It looks like you're anonymous. You need to make me admin so I can figure out what channels you have.",
             );
         }
 
@@ -115,7 +115,7 @@ composer.callbackQuery('anon-watch', async ctx => {
 
     if (!ctx.msg?.reply_to_message) {
         await ctx.answerCallbackQuery({
-            text: 'I don\'t know what hashtags you want. 🤔',
+            text: "I don't know what hashtags you want. 🤔",
         });
         await ctx.deleteMessage();
         return;

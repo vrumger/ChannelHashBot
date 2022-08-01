@@ -25,7 +25,12 @@ export const handleEditedMessage: HashtagHandler = async (
             message_id: message.message_id,
         });
     } catch (err) {
-        console.error(err.stack);
+        if (err instanceof Error) {
+            console.error(err.stack);
+        } else {
+            console.error(err);
+        }
+
         return;
     }
 

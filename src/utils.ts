@@ -21,7 +21,7 @@ export function getEntities(msg: Message | undefined): MessageEntity[] {
 
 export const handleError = async (
     ctx: Context,
-    error: Error,
+    error: Error | unknown,
 ): Promise<boolean> => {
     if (error) {
         console.error(error);

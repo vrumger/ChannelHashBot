@@ -46,7 +46,7 @@ const getChannelTitle = (api: Api, chat_id: number): Promise<string> => {
 composer.command('tags', async ctx => {
     if (
         !ctx.chat ||
-        !['group', 'supergroup'].includes(ctx.chat?.type) ||
+        !['group', 'supergroup'].includes(ctx.chat.type) ||
         ctx.senderChat?.type === 'channel'
     ) {
         return;

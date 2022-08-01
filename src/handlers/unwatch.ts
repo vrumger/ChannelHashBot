@@ -7,7 +7,7 @@ const composer = new Composer();
 composer.command('unwatch', async ctx => {
     if (
         !ctx.chat ||
-        !['group', 'supergroup'].includes(ctx.chat?.type) ||
+        !['group', 'supergroup'].includes(ctx.chat.type) ||
         ctx.senderChat?.type === 'channel'
     ) {
         return;

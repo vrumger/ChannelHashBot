@@ -65,6 +65,8 @@ export const handleNewMessage: HashtagHandler = async (
             } catch (error) {
                 if (
                     !(error instanceof GrammyError) &&
+                    // TODO:
+                    // @ts-expect-error `Object is of type 'unknown'`
                     ![400, 403].includes(error.error_code)
                 ) {
                     throw error;
