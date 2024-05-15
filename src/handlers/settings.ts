@@ -25,7 +25,7 @@ const generateMarkup = (chat: IGroup) => {
     const comments = chat.settings!.comments === true; // Default false
     const likes = chat.settings!.likes === true; // Default false
 
-    return new InlineKeyboard()
+    const keyboard = new InlineKeyboard()
         .text(
             buttonText`Forwards ${forwards}`,
             buttonData('forwards', forwards),
@@ -37,8 +37,13 @@ const generateMarkup = (chat: IGroup) => {
             buttonText`Comments ${comments}`,
             buttonData('comments', comments),
         )
-        .row()
-        .text(buttonText`Likes ${likes}`, buttonData('likes', likes));
+        .row();
+
+    if (chat.settings!.likes) {
+        keyboard.text(buttonText`Likes ${likes}`, buttonData('likes', likes));
+    }
+
+    return keyboard;
 };
 
 const updateSettings = (
