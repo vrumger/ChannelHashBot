@@ -56,7 +56,7 @@ composer
             const replyMarkup = getReplyMarkup({
                 chat,
                 directLink,
-                commentsLink: `https://t.me/c/${chatId}/1?thread=${ctx.msg.message_id}`,
+                commentsLink: `https://t.me/c/${chatId}/${ctx.msg.message_id}?thread=${ctx.msg.message_id}`,
                 message_id: message.message_id,
                 plus,
                 minus,
