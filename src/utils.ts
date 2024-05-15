@@ -78,3 +78,21 @@ export const formatLikeKeyboard = (
 
     return keyboard;
 };
+
+// returns an array where the first item is the object with all the keys lowercase
+// and the second item is a map of the lowercase keys to the original keys
+export const lowerCaseObject = <T extends { [k: string]: unknown }>(
+    object: T,
+): [T, { [k: string]: string }] => {
+    return Object.entries(object).reduce<[T, { [k: string]: string }]>(
+        ([result, keyMap], [key, value]) => {
+            const lowerCaseKey = key.toLowerCase();
+
+            result[lowerCaseKey as keyof T] = value as T[keyof T];
+            keyMap[lowerCaseKey] = key;
+
+            return [result, keyMap];
+        },
+        [{} as T, {} as { [k: string]: string }],
+    );
+};

@@ -3,6 +3,7 @@ import { GrammyError } from 'grammy';
 import Group from '../../models/group';
 import { Group as IGroup } from '../../typings/db';
 import Message from '../../models/message';
+import { lowerCaseObject } from '../../utils';
 
 export const handleNewMessage: HashtagHandler = async (
     ctx,
@@ -29,18 +30,20 @@ export const handleNewMessage: HashtagHandler = async (
     }
 
     const sentChannels: number[] = [];
+    const [chatTags, tagKeyMap] = lowerCaseObject(chat.tags);
 
     for (const tag of tags) {
-        if (!chat.tags[tag]) {
+        if (!chatTags[tag]) {
             continue;
         }
 
         // Convert to array for backwards compatibility
-        if (!Array.isArray(chat.tags[tag])) {
-            chat.tags[tag] = [chat.tags[tag] as unknown as number];
+        if (!Array.isArray(chatTags[tag])) {
+            chatTags[tag] = [chatTags[tag] as unknown as number];
+            chat.tags[tagKeyMap[tag]] = chatTags[tag];
         }
 
-        for (const channelID of chat.tags[tag]) {
+        for (const channelID of chatTags[tag]) {
             if (sentChannels.includes(channelID)) {
                 continue;
             }
@@ -72,10 +75,13 @@ export const handleNewMessage: HashtagHandler = async (
                     throw error;
                 }
 
-                if (chat.tags[tag].length === 1) {
-                    delete chat.tags[tag];
+                if (chat.tags[tagKeyMap[tag]].length === 1) {
+                    delete chat.tags[tagKeyMap[tag]];
                 } else {
-                    chat.tags[tag].splice(chat.tags[tag].indexOf(channelID), 1);
+                    chat.tags[tagKeyMap[tag]].splice(
+                        chat.tags[tagKeyMap[tag]].indexOf(channelID),
+                        1,
+                    );
                 }
 
                 chat.markModified('tags');
