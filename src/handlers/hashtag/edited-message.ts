@@ -11,6 +11,7 @@ export const handleEditedMessage: HashtagHandler = async (
     message,
     entities,
     text,
+    textIsCaption,
     hashtagEntities,
     tags,
 ) => {
@@ -41,6 +42,7 @@ export const handleEditedMessage: HashtagHandler = async (
                 message,
                 entities,
                 text,
+                textIsCaption,
                 hashtagEntities,
                 tags,
             );
@@ -140,7 +142,7 @@ export const handleEditedMessage: HashtagHandler = async (
                     channelID: channelMessage.channel_id,
                     message,
                     text,
-                    entities,
+                    textIsCaption,
                 });
 
                 await new Message({

@@ -1,5 +1,5 @@
 import { Context, InlineKeyboard } from 'grammy';
-import { MessageEntity, Message as TMessage } from '@grammyjs/types';
+import { MessageEntity, MessageId, Message as TMessage } from '@grammyjs/types';
 import { Group as IGroup } from '../../typings/db';
 import { formatLikeKeyboard } from '../../utils';
 
@@ -9,6 +9,7 @@ export interface HashtagHandler {
         message: TMessage,
         entities: MessageEntity[],
         text: string,
+        textIsCaption: boolean,
         hashtagEntities: MessageEntity[],
         tags: string[],
     ): Promise<void>;
@@ -61,15 +62,15 @@ export const sendMessage = async ({
     channelID,
     message,
     text,
-    entities,
+    textIsCaption,
 }: {
     ctx: Context;
     chat: IGroup;
     channelID: number;
     message: TMessage;
     text: string;
-    entities: MessageEntity[];
-}): Promise<TMessage> => {
+    textIsCaption: boolean;
+}): Promise<MessageId> => {
     // Use `!== false` in case it's `undefined`
     if (!chat.settings || chat.settings.forwards !== false) {
         return await ctx.api.forwardMessage(
@@ -85,43 +86,27 @@ export const sendMessage = async ({
             ? message.chat.username
             : `c/${chatId}`;
 
+    const addReplyMarkup = text.length <= (textIsCaption ? 1024 : 4096);
     const replyMarkup = getReplyMarkup({
         chat,
         directLink,
         message_id: message.message_id,
     });
 
-    if (message.audio) {
-        return await ctx.api.sendAudio(channelID, message.audio.file_id, {
-            reply_markup: replyMarkup,
-            caption: text,
-            caption_entities: entities,
-        });
-    } else if (message.document) {
-        return await ctx.api.sendDocument(channelID, message.document.file_id, {
-            reply_markup: replyMarkup,
-            caption: text,
-            caption_entities: entities,
-        });
-    } else if (message.photo) {
-        const photos = [...message.photo];
-        const fileId = photos.pop()!.file_id;
+    const copiedMessage = await ctx.api.copyMessage(
+        channelID,
+        message.chat.id,
+        message.message_id,
+        addReplyMarkup ? { reply_markup: replyMarkup } : undefined,
+    );
 
-        return await ctx.api.sendPhoto(channelID, fileId, {
-            reply_markup: replyMarkup,
-            caption: text,
-            caption_entities: entities,
-        });
-    } else if (message.video) {
-        return await ctx.api.sendVideo(channelID, message.video.file_id, {
-            reply_markup: replyMarkup,
-            caption: text,
-            caption_entities: entities,
-        });
-    } else {
-        return await ctx.api.sendMessage(channelID, text, {
-            reply_markup: replyMarkup,
-            entities,
-        });
+    if (!addReplyMarkup) {
+        await ctx.api.editMessageReplyMarkup(
+            channelID,
+            copiedMessage.message_id,
+            { reply_markup: replyMarkup },
+        );
     }
+
+    return copiedMessage;
 };

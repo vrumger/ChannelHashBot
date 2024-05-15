@@ -10,6 +10,7 @@ export const handleNewMessage: HashtagHandler = async (
     message,
     entities,
     text,
+    textIsCaption,
     hashtagEntities,
     tags,
 ) => {
@@ -55,7 +56,7 @@ export const handleNewMessage: HashtagHandler = async (
                     channelID,
                     message,
                     text,
-                    entities,
+                    textIsCaption,
                 });
 
                 sentChannels.push(channelID);

@@ -46,6 +46,7 @@ composer
                 message,
                 entities,
                 text,
+                Boolean(message.caption),
                 hashtagEntities,
                 tags,
             );
@@ -55,6 +56,7 @@ composer
                 message,
                 entities,
                 text,
+                Boolean(message.caption),
                 hashtagEntities,
                 tags,
             );
